@@ -1,0 +1,25 @@
+# Build artifacts
+/.deps
+/aclocal.m4
+/autom4te.cache/
+/build-aux/
+/config.h
+/config.h.in
+/config.log
+/config.status
+/configure
+/stamp-h1
+Makefile
+Makefile.in
+
+# Random exclusions
+/.gdb_history
+
+# Generated binaries
+/partread
+/ldmread
+*.o
+
+# Temporary files
+.*.swp
+*~
