@@ -2,6 +2,7 @@
 #include <fcntl.h>
 #include <stdint.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 #include <sys/mman.h>
 #include <sys/stat.h>
@@ -23,7 +24,14 @@
  * for LDM on GPT disks.
  */
 
-struct _ldm_privhead {
+/* Fixed structures
+ *
+ * These structures don't contain any variable-length fields, and can therefore
+ * be accessed directly.
+ */
+
+struct _ldm_privhead
+{
     char magic[8]; // "PRIVHEAD"
 
     uint32_t unknown_sequence;
@@ -61,7 +69,8 @@ struct _ldm_privhead {
 
 } __attribute__((__packed__));
 
-struct _ldm_tocblock_bitmap {
+struct _ldm_tocblock_bitmap
+{
     char name[8];
     uint16_t flags1;
     uint64_t start;
@@ -69,7 +78,8 @@ struct _ldm_tocblock_bitmap {
     uint64_t flags2;
 } __attribute__((__packed__));
 
-struct _ldm_tocblock {
+struct _ldm_tocblock
+{
     char magic[8]; // "TOCBLOCK"
 
     uint32_t seq1;
@@ -80,7 +90,8 @@ struct _ldm_tocblock {
     struct _ldm_tocblock_bitmap bitmap[2];
 } __attribute__((__packed__));
 
-struct _ldm_vmdb {
+struct _ldm_vmdb
+{
     char magic[4]; // "VMDB"
 
     uint32_t vblk_last;
@@ -111,7 +122,8 @@ struct _ldm_vmdb {
     uint64_t last_accessed;
 } __attribute__((__packed__));
 
-struct _ldm_vblk_head {
+struct _ldm_vblk_head
+{
     char magic[4]; // "VBLK"
 
     uint32_t seq;
@@ -125,6 +137,8 @@ struct _ldm_vblk_head {
     uint8_t  record_type;
     uint32_t record_size;
 } __attribute__((__packed__));
+
+/* GLIB error handling */
 
 #define LDM_ERROR (part_ldm_error_quark())
 
@@ -153,6 +167,8 @@ part_ldm_error_get_type(void)
     return etype;
 }
 
+/* PartLDM */
+
 #define PART_LDM_GET_PRIVATE(obj)       (G_TYPE_INSTANCE_GET_PRIVATE \
         ((obj), PART_TYPE_LDM, PartLDMPrivate))
 
@@ -164,40 +180,36 @@ struct _PartLDMPrivate
 G_DEFINE_TYPE(PartLDM, part_ldm, G_TYPE_OBJECT)
 
 static void
-_unref_disk_groups(GArray *disk_groups)
+_unref_object(gpointer const data)
 {
-    for (int i = 0; i < disk_groups->len; i++) {
-        PartLDMDiskGroup *dg =
-            PART_LDM_DISK_GROUP(g_array_index(disk_groups,
-                                              PartLDMDiskGroup *, i));
-        g_object_unref(dg);
-    }
-    g_array_unref(disk_groups);
+    g_object_unref(*(GObject **)data);
 }
 
 static void
-part_ldm_finalize(GObject *object)
+part_ldm_finalize(GObject * const object)
 {
     PartLDM *ldm = PART_LDM(object);
 
-    _unref_disk_groups(ldm->priv->disk_groups);
+    g_array_unref(ldm->priv->disk_groups); ldm->priv->disk_groups = NULL;
 }
 
 static void
-part_ldm_init(PartLDM *o)
+part_ldm_init(PartLDM * const o)
 {
     o->priv = PART_LDM_GET_PRIVATE(o);
     bzero(o->priv, sizeof(*o->priv));
 }
 
 static void
-part_ldm_class_init(PartLDMClass *klass)
+part_ldm_class_init(PartLDMClass * const klass)
 {
     GObjectClass *object_class = G_OBJECT_CLASS(klass);
     object_class->finalize = part_ldm_finalize;
 
     g_type_class_add_private(klass, sizeof(PartLDMPrivate));
 }
+
+/* PartLDMDiskGroup */
 
 #define PART_LDM_DISK_GROUP_GET_PRIVATE(obj)    (G_TYPE_INSTANCE_GET_PRIVATE \
         ((obj), PART_TYPE_LDM_DISK_GROUP, PartLDMDiskGroupPrivate))
@@ -214,27 +226,28 @@ struct _PartLDMDiskGroupPrivate
     uint32_t n_parts;
     uint32_t n_vols;
 
-    struct _disk *disks;
-    struct _comp *comps;
-    struct _part *parts;
-    struct _vol *vols;
+    GArray *disks;
+    GArray *comps;
+    GArray *parts;
+    GArray *vols;
 };
 
 G_DEFINE_TYPE(PartLDMDiskGroup, part_ldm_disk_group, G_TYPE_OBJECT)
 
 static void
-part_ldm_disk_group_finalize(GObject *object)
+part_ldm_disk_group_finalize(GObject * const object)
 {
     PartLDMDiskGroup *dg = PART_LDM_DISK_GROUP(object);
 
     g_free(dg->priv->name); dg->priv->name = NULL;
-    g_free(dg->priv->disks); dg->priv->disks = NULL;
-    g_free(dg->priv->comps); dg->priv->comps = NULL;
-    g_free(dg->priv->vols); dg->priv->vols = NULL;
+    g_array_unref(dg->priv->vols); dg->priv->vols = NULL;
+    g_array_unref(dg->priv->comps); dg->priv->comps = NULL;
+    g_array_unref(dg->priv->parts); dg->priv->vols = NULL;
+    g_array_unref(dg->priv->disks); dg->priv->disks = NULL;
 }
 
 static void
-part_ldm_disk_group_class_init(PartLDMDiskGroupClass *klass)
+part_ldm_disk_group_class_init(PartLDMDiskGroupClass * const klass)
 {
     GObjectClass *object_class = G_OBJECT_CLASS(klass);
     object_class->finalize = part_ldm_disk_group_finalize;
@@ -243,76 +256,242 @@ part_ldm_disk_group_class_init(PartLDMDiskGroupClass *klass)
 }
 
 static void
-part_ldm_disk_group_init(PartLDMDiskGroup *o)
+part_ldm_disk_group_init(PartLDMDiskGroup * const o)
 {
     o->priv = PART_LDM_DISK_GROUP_GET_PRIVATE(o);
     bzero(o->priv, sizeof(*o->priv));
 }
 
-struct _disk {
-    uint32_t id;
-    char *name;
+/* PartLDMVolumeType */
+
+GType
+part_ldm_volume_type_get_type(void)
+{
+    static GType etype = 0;
+    if (etype == 0) {
+        static const GEnumValue values[] = {
+            { PART_LDM_VOLUME_TYPE_GEN, "PART_LDM_VOLUME_TYPE_GEN", "gen" },
+            { PART_LDM_VOLUME_TYPE_RAID5,
+              "PART_LDM_VOLUME_TYPE_RAID5", "raid5" }
+        };
+        etype = g_enum_register_static("PartLDMVolumeType", values);
+    }
+    return etype;
+}
+
+/* PartLDMVolume */
+
+#define PART_LDM_VOLUME_GET_PRIVATE(obj) (G_TYPE_INSTANCE_GET_PRIVATE \
+        ((obj), PART_TYPE_LDM_VOLUME, PartLDMVolumePrivate))
+
+struct _PartLDMVolumePrivate
+{
+    guint32 id;
+    gchar *name;
+
+    PartLDMVolumeType type;
+    guint64 size;
+    guint8 part_type;
+
+    guint32 n_comps;
+    GArray *comps;
+
+    gchar *id1;
+    gchar *id2;
+    guint64 size2;
+    gchar *hint;
+};
+
+G_DEFINE_TYPE(PartLDMVolume, part_ldm_volume, G_TYPE_OBJECT)
+
+static void
+part_ldm_volume_finalize(GObject * const object)
+{
+    PartLDMVolume * const vol = PART_LDM_VOLUME(object);
+    PartLDMVolumePrivate * const priv = vol->priv;
+
+    g_free(priv->name); priv->name = NULL;
+
+    g_array_unref(priv->comps); priv->comps = NULL;
+
+    g_free(priv->id1); priv->id1 = NULL;
+    g_free(priv->id2); priv->id2 = NULL;
+    g_free(priv->hint); priv->hint = NULL;
+}
+
+static void
+part_ldm_volume_class_init(PartLDMVolumeClass * const klass)
+{
+    GObjectClass *object_class = G_OBJECT_CLASS(klass);
+    object_class->finalize = part_ldm_volume_finalize;
+
+    g_type_class_add_private(klass, sizeof(PartLDMVolumePrivate));
+}
+
+static void
+part_ldm_volume_init(PartLDMVolume * const o)
+{
+    o->priv = PART_LDM_VOLUME_GET_PRIVATE(o);
+    bzero(o->priv, sizeof(*o->priv));
+}
+
+/* PartLDMComponentType */
+
+GType
+part_ldm_component_type_get_type(void)
+{
+    static GType etype = 0;
+    if (etype == 0) {
+        static const GEnumValue values[] = {
+            { PART_LDM_COMPONENT_TYPE_STRIPED,
+              "PART_LDM_VOLUME_TYPE_STRIPED", "striped" },
+            { PART_LDM_COMPONENT_TYPE_SPANNED,
+              "PART_LDM_VOLUME_TYPE_SPANNED", "spanned" },
+            { PART_LDM_COMPONENT_TYPE_MIRRORED,
+              "PART_LDM_VOLUME_TYPE_MIRRORED", "mirrored" }
+        };
+        etype = g_enum_register_static("PartLDMComponentType", values);
+    }
+    return etype;
+}
+
+/* PartLDMComponent */
+
+#define PART_LDM_COMPONENT_GET_PRIVATE(obj) (G_TYPE_INSTANCE_GET_PRIVATE \
+        ((obj), PART_TYPE_LDM_COMPONENT, PartLDMComponentPrivate))
+
+struct _PartLDMComponentPrivate
+{
+    guint32 id;
+    guint32 parent_id;
+    gchar *name;
+
+    PartLDMComponentType type;
+    uint32_t n_parts;
+    GArray *parts;
+
+    guint64 stripe_size;
+    guint32 n_columns;
+};
+
+G_DEFINE_TYPE(PartLDMComponent, part_ldm_component, G_TYPE_OBJECT)
+
+static void
+part_ldm_component_finalize(GObject * const object)
+{
+    PartLDMComponent * const comp = PART_LDM_COMPONENT(object);
+    PartLDMComponentPrivate * const priv = comp->priv;
+
+    g_free(priv->name); priv->name = NULL;
+
+    g_array_unref(priv->parts); priv->parts = NULL;
+}
+
+static void
+part_ldm_component_class_init(PartLDMComponentClass * const klass)
+{
+    GObjectClass *object_class = G_OBJECT_CLASS(klass);
+    object_class->finalize = part_ldm_component_finalize;
+
+    g_type_class_add_private(klass, sizeof(PartLDMComponentPrivate));
+}
+
+static void
+part_ldm_component_init(PartLDMComponent * const o)
+{
+    o->priv = PART_LDM_COMPONENT_GET_PRIVATE(o);
+    bzero(o->priv, sizeof(*o->priv));
+}
+
+/* PartLDMPartition */
+
+#define PART_LDM_PARTITION_GET_PRIVATE(obj) (G_TYPE_INSTANCE_GET_PRIVATE \
+        ((obj), PART_TYPE_LDM_PARTITION, PartLDMPartitionPrivate))
+
+struct _PartLDMPartitionPrivate
+{
+    guint32 id;
+    guint32 parent_id;
+    gchar *name;
+
+    guint64 start;
+    guint64 vol_offset;
+    guint64 size;
+    guint32 index;
+
+    guint32 disk_id;
+    PartLDMDisk *disk;
+};
+
+G_DEFINE_TYPE(PartLDMPartition, part_ldm_partition, G_TYPE_OBJECT)
+
+static void
+part_ldm_partition_finalize(GObject * const object)
+{
+    PartLDMPartition * const part = PART_LDM_PARTITION(object);
+    PartLDMPartitionPrivate * const priv = part->priv;
+
+    g_free(priv->name); priv->name = NULL;
+    g_object_unref(priv->disk); priv->disk = NULL;
+}
+
+static void
+part_ldm_partition_class_init(PartLDMPartitionClass * const klass)
+{
+    GObjectClass *object_class = G_OBJECT_CLASS(klass);
+    object_class->finalize = part_ldm_partition_finalize;
+
+    g_type_class_add_private(klass, sizeof(PartLDMPartitionPrivate));
+}
+
+static void
+part_ldm_partition_init(PartLDMPartition * const o)
+{
+    o->priv = PART_LDM_PARTITION_GET_PRIVATE(o);
+    bzero(o->priv, sizeof(*o->priv));
+}
+
+/* PartLDMDisk */
+
+#define PART_LDM_DISK_GET_PRIVATE(obj) (G_TYPE_INSTANCE_GET_PRIVATE \
+        ((obj), PART_TYPE_LDM_DISK, PartLDMDiskPrivate))
+
+struct _PartLDMDiskPrivate
+{
+    guint32 id;
+    gchar *name;
 
     uuid_t guid;
-    char *device; // NULL until device is found
+    gchar *device; // NULL until device is found
 };
 
-struct _part {
-    uint32_t id;
-    uint32_t parent_id;
-    char *name;
+G_DEFINE_TYPE(PartLDMDisk, part_ldm_disk, G_TYPE_OBJECT)
 
-    uint64_t start;
-    uint64_t vol_offset;
-    uint64_t size;
-    uint32_t index;
+static void
+part_ldm_disk_finalize(GObject * const object)
+{
+    PartLDMDisk * const disk = PART_LDM_DISK(object);
+    PartLDMDiskPrivate * const priv = disk->priv;
 
-    uint32_t disk_id;
-    const struct _disk *disk;
-};
+    g_free(priv->name); priv->name = NULL;
+    g_free(priv->device); priv->device = NULL;
+}
 
-typedef enum {
-    STRIPED = 0x1,
-    SPANNED = 0x2,
-    MIRRORED = 0x3
-} _comp_type_t;
+static void
+part_ldm_disk_class_init(PartLDMDiskClass * const klass)
+{
+    GObjectClass *object_class = G_OBJECT_CLASS(klass);
+    object_class->finalize = part_ldm_disk_finalize;
 
-struct _comp {
-    uint32_t id;
-    uint32_t parent_id;
-    char *name;
+    g_type_class_add_private(klass, sizeof(PartLDMDiskPrivate));
+}
 
-    _comp_type_t type;
-    uint32_t n_parts;
-    const struct _part **parts;
-    uint32_t parts_i;
-
-    uint64_t stripe_size;
-    uint32_t n_columns;
-};
-
-typedef enum {
-    GEN,
-    RAID5
-} _vol_type_t;
-
-struct _vol {
-    uint32_t id;
-    char *name;
-
-    _vol_type_t type;
-    uint64_t size;
-    uint8_t part_type;
-
-    uint32_t n_comps;
-    const struct _comp **comps;
-    uint32_t comps_i;
-
-    char *id1;
-    char *id2;
-    uint64_t size2;
-    char *hint;
-};
+static void
+part_ldm_disk_init(PartLDMDisk * const o)
+{
+    o->priv = PART_LDM_DISK_GET_PRIVATE(o);
+    bzero(o->priv, sizeof(*o->priv));
+}
 
 #define SECTOR_SIZE (0x200)
 
@@ -510,6 +689,7 @@ _read_privhead_gpt(const int fd, const gchar * const path,
 
         if (uuid_compare(pte.type, LDM_METADATA) == 0) {
             /* PRIVHEAD is in the last LBA of the LDM metadata partition */
+            gpt_close(h);
             return _read_privhead_off(fd, path, pte.last_lba * SECTOR_SIZE,
                                        privhead, err);
         }
@@ -561,11 +741,11 @@ _read_privhead(const int fd, const gchar * const path,
 
 #define PARSE_VAR_INT(func_name, out_type)                                     \
 static gboolean                                                                \
-func_name(const uint8_t ** const var, out_type * const out,                    \
+func_name(const guint8 ** const var, out_type * const out,                     \
           const gchar * const field, const gchar * const type,                 \
           GError ** const err)                                                 \
 {                                                                              \
-    uint8_t i = **var; (*var)++;                                               \
+    guint8 i = **var; (*var)++;                                                \
     if (i > sizeof(*out)) {                                                    \
         g_set_error(err, LDM_ERROR, PART_LDM_ERROR_INTERNAL,                   \
                     "Found %hhu byte integer for %s:%s", i, field, type);      \
@@ -584,11 +764,11 @@ func_name(const uint8_t ** const var, out_type * const out,                    \
 PARSE_VAR_INT(_parse_var_int32, uint32_t)
 PARSE_VAR_INT(_parse_var_int64, uint64_t)
 
-static char *
-_parse_var_string(const uint8_t ** const var)
+static gchar *
+_parse_var_string(const guint8 ** const var)
 {
-    uint8_t len = **var; (*var)++;
-    char *ret = g_malloc(len + 1);
+    guint8 len = **var; (*var)++;
+    gchar *ret = g_malloc(len + 1);
     memcpy(ret, *var, len); (*var) += len;
     ret[len] = '\0';
 
@@ -596,15 +776,15 @@ _parse_var_string(const uint8_t ** const var)
 }
 
 static void
-_parse_var_skip(const uint8_t ** const var)
+_parse_var_skip(const guint8 ** const var)
 {
-    uint8_t len = **var; (*var)++;
+    guint8 len = **var; (*var)++;
     (*var) += len;
 }
 
 static gboolean
-_parse_vblk_vol(const uint8_t revision, const uint16_t flags,
-                const uint8_t * vblk, struct _vol * const vol,
+_parse_vblk_vol(const guint8 revision, const guint16 flags,
+                const guint8 * vblk, PartLDMVolumePrivate * const vol,
                 GError ** const err)
 {
     if (revision != 5) {
@@ -621,9 +801,9 @@ _parse_vblk_vol(const uint8_t revision, const uint16_t flags,
 
     char *type = _parse_var_string(&vblk);
     if (strcmp(type, "gen") == 0) {
-        vol->type = GEN;
+        vol->type = PART_LDM_VOLUME_TYPE_GEN;
     } else if (strcmp(type, "raid5") == 0) {
-        vol->type = RAID5;
+        vol->type = PART_LDM_VOLUME_TYPE_RAID5;
     } else {
         g_set_error(err, LDM_ERROR, PART_LDM_ERROR_NOTSUPPORTED,
                     "Unsupported volume VBLK type %s", type);
@@ -655,7 +835,9 @@ _parse_vblk_vol(const uint8_t revision, const uint16_t flags,
 
     if (!_parse_var_int32(&vblk, &vol->n_comps, "n_children", "volume", err))
         return FALSE;
-    vol->comps = g_malloc(sizeof(vol->comps[0]) * vol->n_comps);
+    vol->comps = g_array_sized_new(FALSE, FALSE,
+                                   sizeof(PartLDMComponent *), vol->n_comps);
+    g_array_set_clear_func(vol->comps, _unref_object);
 
     /* Commit id */
     vblk += 8;
@@ -685,8 +867,8 @@ _parse_vblk_vol(const uint8_t revision, const uint16_t flags,
 }
 
 static gboolean
-_parse_vblk_comp(const uint8_t revision, const uint16_t flags,
-                 const uint8_t *vblk, struct _comp * const comp,
+_parse_vblk_comp(const guint8 revision, const guint16 flags,
+                 const guint8 *vblk, PartLDMComponentPrivate * const comp,
                  GError ** const err)
 {
     if (revision != 3) {
@@ -703,9 +885,9 @@ _parse_vblk_comp(const uint8_t revision, const uint16_t flags,
     _parse_var_skip(&vblk);
 
     comp->type = *((uint8_t *) vblk); vblk++;
-    if (comp->type != STRIPED &&
-        comp->type != SPANNED &&
-        comp->type != MIRRORED)
+    if (comp->type != PART_LDM_COMPONENT_TYPE_STRIPED &&
+        comp->type != PART_LDM_COMPONENT_TYPE_SPANNED &&
+        comp->type != PART_LDM_COMPONENT_TYPE_MIRRORED)
     {
         g_set_error(err, LDM_ERROR, PART_LDM_ERROR_NOTSUPPORTED,
                     "Component VBLK OID=%u has unsupported type %u",
@@ -718,7 +900,9 @@ _parse_vblk_comp(const uint8_t revision, const uint16_t flags,
 
     if (!_parse_var_int32(&vblk, &comp->n_parts, "n_parts", "component", err))
         return FALSE;
-    comp->parts = g_malloc(sizeof(comp->parts[0]) * comp->n_parts);
+    comp->parts = g_array_sized_new(FALSE, FALSE,
+                                    sizeof(PartLDMPartition *), comp->n_parts);
+    g_array_set_clear_func(comp->parts, _unref_object);
 
     /* Log Commit ID */
     vblk += 8;
@@ -746,8 +930,8 @@ _parse_vblk_comp(const uint8_t revision, const uint16_t flags,
 }
 
 static gboolean
-_parse_vblk_part(const uint8_t revision, const uint16_t flags,
-                 const uint8_t *vblk, struct _part * const part,
+_parse_vblk_part(const guint8 revision, const guint16 flags,
+                 const guint8 *vblk, PartLDMPartitionPrivate * const part,
                  GError ** const err)
 {
     if (revision != 3) {
@@ -788,8 +972,8 @@ _parse_vblk_part(const uint8_t revision, const uint16_t flags,
 }
 
 static gboolean
-_parse_vblk_disk(const uint8_t revision, const uint16_t flags,
-                 const uint8_t *vblk, struct _disk * const disk,
+_parse_vblk_disk(const guint8 revision, const guint16 flags,
+                 const guint8 *vblk, PartLDMDiskPrivate * const disk,
                  GError ** const err)
 {
     vblk += sizeof(struct _ldm_vblk_head);
@@ -837,21 +1021,27 @@ _parse_vblks(const void * const config, const gchar * const path,
     dg->n_parts = be32toh(vmdb->n_committed_vblks_part);
     dg->n_vols = be32toh(vmdb->n_committed_vblks_vol);
 
-    dg->disks = g_malloc0(sizeof(dg->disks[0]) * dg->n_disks);
-    dg->comps = g_malloc0(sizeof(dg->comps[0]) * dg->n_comps);
-    dg->parts = g_malloc0(sizeof(dg->parts[0]) * dg->n_parts);
-    dg->vols = g_malloc0(sizeof(dg->vols[0]) * dg->n_vols);
+    dg->disks = g_array_sized_new(FALSE, FALSE,
+                                  sizeof(PartLDMDisk *), dg->n_disks);
+    dg->comps = g_array_sized_new(FALSE, FALSE,
+                                  sizeof(PartLDMComponent *), dg->n_comps);
+    dg->parts = g_array_sized_new(FALSE, FALSE,
+                                 sizeof(PartLDMPartition *), dg->n_parts);
+    dg->vols = g_array_sized_new(FALSE, FALSE,
+                                 sizeof(PartLDMVolume *), dg->n_vols);
+    g_array_set_clear_func(dg->disks, _unref_object);
+    g_array_set_clear_func(dg->comps, _unref_object);
+    g_array_set_clear_func(dg->parts, _unref_object);
+    g_array_set_clear_func(dg->vols, _unref_object);
 
-    size_t disks_i = 0, comps_i = 0, parts_i = 0, vols_i = 0;
-
-    const uint16_t vblk_size = be32toh(vmdb->vblk_size);
+    const guint16 vblk_size = be32toh(vmdb->vblk_size);
     const void *vblk = (void *)vmdb + be32toh(vmdb->vblk_first_offset);
     for(;;) {
         const struct _ldm_vblk_head * const head = vblk;
         if (memcmp(head->magic, "VBLK", 4) != 0) break;
 
-        const uint8_t type = head->record_type & 0x0F;
-        const uint8_t revision = (head->record_type & 0xF0) >> 4;
+        const guint8 type = head->record_type & 0x0F;
+        const guint8 revision = (head->record_type & 0xF0) >> 4;
 
         switch (type) {
         case 0x00:
@@ -859,28 +1049,48 @@ _parse_vblks(const void * const config, const gchar * const path,
             break;
 
         case 0x01:
+        {
+            PartLDMVolume * const vol =
+                PART_LDM_VOLUME(g_object_new(PART_TYPE_LDM_VOLUME, NULL));
+            g_array_append_val(dg->vols, vol);
             if (!_parse_vblk_vol(revision, head->record_flags,
-                                 vblk, &dg->vols[vols_i++], err))
+                                 vblk, vol->priv, err))
                 return FALSE;
             break;
+        }
 
         case 0x02:
+        {
+            PartLDMComponent * const comp =
+                PART_LDM_COMPONENT(g_object_new(PART_TYPE_LDM_COMPONENT, NULL));
+            g_array_append_val(dg->comps, comp);
             if (!_parse_vblk_comp(revision, head->record_flags,
-                                  vblk, &dg->comps[comps_i++], err))
+                                  vblk, comp->priv, err))
                 return FALSE;
             break;
+        }
 
         case 0x03:
+        {
+            PartLDMPartition * const part =
+                PART_LDM_PARTITION(g_object_new(PART_TYPE_LDM_PARTITION, NULL));
+            g_array_append_val(dg->parts, part);
             if (!_parse_vblk_part(revision, head->record_flags,
-                                  vblk, &dg->parts[parts_i++], err))
+                                  vblk, part->priv, err))
                 return FALSE;
             break;
+        }
 
         case 0x04:
+        {
+            PartLDMDisk * const disk =
+                PART_LDM_DISK(g_object_new(PART_TYPE_LDM_DISK, NULL));
+            g_array_append_val(dg->disks, disk);
             if (!_parse_vblk_disk(revision, head->record_flags,
-                                  vblk, &dg->disks[disks_i++], err))
+                                  vblk, disk->priv, err))
                 return FALSE;
             break;
+        }
 
         case 0x05:
             /* We don't need any addition about the disk group */
@@ -897,60 +1107,62 @@ _parse_vblks(const void * const config, const gchar * const path,
         vblk += vblk_size;
     }
 
-    if (disks_i != dg->n_disks) {
+    if (dg->disks->len != dg->n_disks) {
         g_set_error(err, LDM_ERROR, PART_LDM_ERROR_INVALID,
-                    "Expected %u disk VBLKs, but found %zu",
-                    dg->n_disks, disks_i);
+                    "Expected %u disk VBLKs, but found %u",
+                    dg->n_disks, dg->disks->len);
         return FALSE;
     }
-    if (comps_i != dg->n_comps) {
+    if (dg->comps->len != dg->n_comps) {
         g_set_error(err, LDM_ERROR, PART_LDM_ERROR_INVALID,
-                    "Expected %u component VBLKs, but found %zu",
-                    dg->n_comps, comps_i);
+                    "Expected %u component VBLKs, but found %u",
+                    dg->n_comps, dg->comps->len);
         return FALSE;
     }
-    if (parts_i != dg->n_parts) {
+    if (dg->parts->len != dg->n_parts) {
         g_set_error(err, LDM_ERROR, PART_LDM_ERROR_INVALID,
-                    "Expected %u partition VBLKs, but found %zu",
-                    dg->n_parts, parts_i);
+                    "Expected %u partition VBLKs, but found %u",
+                    dg->n_parts, dg->parts->len);
         return FALSE;
     }
-    if (vols_i != dg->n_vols) {
+    if (dg->vols->len != dg->n_vols) {
         g_set_error(err, LDM_ERROR, PART_LDM_ERROR_INVALID,
-                    "Expected %u volume VBLKs, but found %zu",
-                    dg->n_vols, vols_i);
+                    "Expected %u volume VBLKs, but found %u",
+                    dg->n_vols, dg->vols->len);
         return FALSE;
     }
 
     for (int i = 0; i < dg->n_parts; i++) {
-        struct _part * const part = &dg->parts[i];
+        PartLDMPartition * const part =
+                g_array_index(dg->parts, PartLDMPartition *, i);
 
         /* Look for the underlying disk for this partition */
         for (int j = 0; j < dg->n_disks; j++) {
-            if (dg->disks[j].id == part->disk_id) {
-                part->disk = &dg->disks[j];
+            PartLDMDisk * const disk =
+                g_array_index(dg->disks, PartLDMDisk *, j);
+
+            if (disk->priv->id == part->priv->disk_id) {
+                part->priv->disk = disk;
+                g_object_ref(disk);
                 break;
             }
         }
-        if (part->disk == NULL) {
+        if (part->priv->disk == NULL) {
             g_set_error(err, LDM_ERROR, PART_LDM_ERROR_INVALID,
                         "Partition %u references unknown disk %u",
-                        part->id, part->disk_id);
+                        part->priv->id, part->priv->disk_id);
             return FALSE;
         }
 
         /* Look for the parent component */
         gboolean parent_found = FALSE;
         for (int j = 0; j < dg->n_comps; j++) {
-            struct _comp * const comp = &dg->comps[j];
-            if (comp->id == part->parent_id) {
-                if (comp->parts_i == comp->n_parts) {
-                    g_set_error(err, LDM_ERROR, PART_LDM_ERROR_INVALID,
-                                "Too many partitions for component %u",
-                                comp->id);
-                    return FALSE;
-                }
-                comp->parts[comp->parts_i++] = part;
+            PartLDMComponent * const comp =
+                g_array_index(dg->comps, PartLDMComponent *, j);
+
+            if (comp->priv->id == part->priv->parent_id) {
+                g_array_append_val(comp->priv->parts, part);
+                g_object_ref(part);
                 parent_found = TRUE;
                 break;
             }
@@ -958,33 +1170,31 @@ _parse_vblks(const void * const config, const gchar * const path,
         if (!parent_found) {
             g_set_error(err, LDM_ERROR, PART_LDM_ERROR_INVALID,
                         "Didn't find parent component %u for partition %u",
-                        part->parent_id, part->id);
+                        part->priv->parent_id, part->priv->id);
             return FALSE;
         }
     }
 
     for (int i = 0; i < dg->n_comps; i++) {
-        const struct _comp * const comp = &dg->comps[i];
+        PartLDMComponent * const comp =
+            g_array_index(dg->comps, PartLDMComponent *, i);
 
-        if (comp->parts_i != comp->n_parts) {
+        if (comp->priv->parts->len != comp->priv->n_parts) {
             g_set_error(err, LDM_ERROR, PART_LDM_ERROR_INVALID,
-                        "Component %u expected %u partitions, but only found "
-                        "%u", comp->id, comp->n_parts, comp->parts_i);
+                        "Component %u expected %u partitions, but found %u",
+                        comp->priv->id,
+                        comp->priv->n_parts, comp->priv->parts->len);
             return FALSE;
         }
 
         gboolean parent_found = FALSE;
         for (int j = 0; j < dg->n_vols; j++) {
-            struct _vol * const vol = &dg->vols[j];
+            PartLDMVolume * const vol =
+                g_array_index(dg->vols, PartLDMVolume *, j);
 
-            if (vol->id == comp->parent_id) {
-                if (vol->comps_i == vol->n_comps) {
-                    g_set_error(err, LDM_ERROR, PART_LDM_ERROR_INVALID,
-                                "Too many components for volume %u",
-                                vol->id);
-                    return FALSE;
-                }
-                vol->comps[vol->comps_i++] = comp;
+            if (vol->priv->id == comp->priv->parent_id) {
+                g_array_append_val(vol->priv->comps, comp);
+                g_object_ref(comp);
                 parent_found = TRUE;
                 break;
             }
@@ -992,18 +1202,20 @@ _parse_vblks(const void * const config, const gchar * const path,
         if (!parent_found) {
             g_set_error(err, LDM_ERROR, PART_LDM_ERROR_INVALID,
                         "Didn't find parent volume %u for component %u",
-                        comp->parent_id, comp->id);
+                        comp->priv->parent_id, comp->priv->id);
             return FALSE;
         }
     }
 
     for (int i = 0; i < dg->n_vols; i++) {
-        const struct _vol * const vol = &dg->vols[i];
+        PartLDMVolume * const vol =
+            g_array_index(dg->vols, PartLDMVolume *, i);
 
-        if (vol->comps_i != vol->n_comps) {
+        if (vol->priv->comps->len != vol->priv->n_comps) {
             g_set_error(err, LDM_ERROR, PART_LDM_ERROR_INVALID,
                         "Volume %u expected %u components, but only found %u",
-                        vol->id, vol->n_comps, vol->comps_i);
+                        vol->priv->id,
+                        vol->priv->n_comps, vol->priv->comps->len);
             return FALSE;
         }
     }
@@ -1088,9 +1300,10 @@ part_ldm_add(PartLDM *o, const gchar * const path, GError ** const err)
     }
 
     for (int i = 0; i < dg->priv->n_disks; i++) {
-        struct _disk * const disk = &dg->priv->disks[i];
-        if (uuid_compare(disk_guid, disk->guid) == 0) {
-            disk->device = g_strdup(path);
+        PartLDMDisk * const disk =
+                g_array_index(dg->priv->disks, PartLDMDisk *, i);
+        if (uuid_compare(disk_guid, disk->priv->guid) == 0) {
+            disk->priv->device = g_strdup(path);
             break;
         }
     }
@@ -1108,10 +1321,10 @@ error:
 PartLDM *
 part_ldm_new(GError ** const err)
 {
-
     PartLDM *ldm = PART_LDM(g_object_new(PART_TYPE_LDM, NULL));
     ldm->priv->disk_groups = g_array_sized_new(FALSE, FALSE,
                                                sizeof (PartLDMDiskGroup *), 1);
+    g_array_set_clear_func(ldm->priv->disk_groups, _unref_object);
 
     return ldm;
 }
@@ -1125,7 +1338,7 @@ part_ldm_get_disk_groups(PartLDM *o, GError **err)
 void
 part_ldm_disk_group_dump(PartLDMDiskGroup *o)
 {
-    PartLDMDiskGroupPrivate *dg = o->priv;
+    const PartLDMDiskGroupPrivate * const dg = o->priv;
 
     char guid_str[37];
     uuid_unparse(dg->guid, guid_str);
@@ -1137,50 +1350,61 @@ part_ldm_disk_group_dump(PartLDMDiskGroup *o)
     g_message("Volumes: %u", dg->n_vols);
 
     for (int i = 0; i < dg->n_vols; i++) {
-        const struct _vol * const vol = &dg->vols[i];
+        const PartLDMVolume * const vol =
+            g_array_index(dg->vols, PartLDMVolume *, i);
 
-        g_message("Volume: %u", vol->id);
-        g_message("  Name: %s", vol->name);
-        g_message("  Type: %s", vol->type == GEN ? "gen" : "raid5");
-        g_message("  Size: %lu", vol->size);
-        g_message("  Partition type: %hhu", vol->part_type);
-        if (vol->id1) g_message("  ID1: %s", vol->id1);
-        if (vol->id2) g_message("  ID2: %s", vol->id2);
-        if (vol->size2 > 0) g_message("  Size2: %lu", vol->size2);
-        if (vol->hint) g_message("  Drive Hint: %s", vol->hint);
+        g_message("Volume: %s", vol->priv->name);
+        g_message("  ID: %u", vol->priv->id);
+        const char * vol_type;
+        switch (vol->priv->type) {
+        case PART_LDM_VOLUME_TYPE_GEN:          vol_type = "gen"; break;
+        case PART_LDM_VOLUME_TYPE_RAID5:        vol_type = "raid5"; break;
+        default:
+            /* Should be impossible. Something has gone wrong. */
+            abort();
+        }
+        g_message("  Type: %s", vol_type);
+        g_message("  Size: %lu", vol->priv->size);
+        g_message("  Partition type: %hhu", vol->priv->part_type);
+        if (vol->priv->id1) g_message("  ID1: %s", vol->priv->id1);
+        if (vol->priv->id2) g_message("  ID2: %s", vol->priv->id2);
+        if (vol->priv->size2 > 0) g_message("  Size2: %lu", vol->priv->size2);
+        if (vol->priv->hint) g_message("  Drive Hint: %s", vol->priv->hint);
 
-        for (int j = 0; j < vol->n_comps; j++) {
-            const struct _comp * const comp = vol->comps[j];
+        for (int j = 0; j < vol->priv->n_comps; j++) {
+            const PartLDMComponent * const comp =
+                g_array_index(vol->priv->comps, PartLDMComponent *, j);
 
-            g_message("  Component: %i", comp->id);
-            g_message("    Name: %s", comp->name);
+            g_message("  Component: %s", comp->priv->name);
+            g_message("    ID: %u", comp->priv->id);
             const char *comp_type = NULL;
-            switch (comp->type) {
-            case STRIPED:       comp_type = "STRIPED"; break;
-            case SPANNED:       comp_type = "SPANNED"; break;
-            case MIRRORED:      comp_type = "MIRRORED"; break;
+            switch (comp->priv->type) {
+            case PART_LDM_COMPONENT_TYPE_STRIPED: comp_type = "STRIPED"; break;
+            case PART_LDM_COMPONENT_TYPE_SPANNED: comp_type = "SPANNED"; break;
+            case PART_LDM_COMPONENT_TYPE_MIRRORED: comp_type = "MIRRORED";
             }
             g_message("    Type: %s", comp_type);
-            if (comp->stripe_size > 0)
-                g_message("    Stripe Size: %lu", comp->stripe_size);
-            if (comp->n_columns > 0)
-                g_message("    Columns: %u", comp->n_columns);
+            if (comp->priv->stripe_size > 0)
+                g_message("    Stripe Size: %lu", comp->priv->stripe_size);
+            if (comp->priv->n_columns > 0)
+                g_message("    Columns: %u", comp->priv->n_columns);
 
-            for (int k = 0; k < comp->n_parts; k++) {
-                const struct _part * const part = comp->parts[k];
+            for (int k = 0; k < comp->priv->n_parts; k++) {
+                const PartLDMPartition * const part =
+                    g_array_index(comp->priv->parts, PartLDMPartition *, k);
 
-                g_message("    Partition: %u", part->id);
-                g_message("      Name: %s", part->name);
-                g_message("      Start: %lu", part->start);
-                g_message("      Size: %lu", part->size);
-                g_message("      Volume Offset: %lu", part->vol_offset);
-                g_message("      Component Index: %u", part->index);
+                g_message("    Partition: %s", part->priv->name);
+                g_message("      ID: %u", part->priv->id);
+                g_message("      Start: %lu", part->priv->start);
+                g_message("      Size: %lu", part->priv->size);
+                g_message("      Volume Offset: %lu", part->priv->vol_offset);
+                g_message("      Component Index: %u", part->priv->index);
 
-                const struct _disk * const disk = part->disk;
-                uuid_unparse(disk->guid, guid_str);
-                g_message("      Disk: %u", disk->id);
+                const PartLDMDisk * const disk = part->priv->disk;
+                uuid_unparse(disk->priv->guid, guid_str);
+                g_message("      Disk: %s", disk->priv->device);
+                g_message("        ID: %u", disk->priv->id);
                 g_message("        GUID: %s", guid_str);
-                g_message("        Device: %s", disk->device);
             }
         }
     }
