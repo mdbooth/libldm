@@ -129,7 +129,7 @@ struct _PartLDMVolumeClass
 typedef enum {
     PART_LDM_COMPONENT_TYPE_STRIPED = 0x1,
     PART_LDM_COMPONENT_TYPE_SPANNED = 0x2,
-    PART_LDM_COMPONENT_TYPE_MIRRORED = 0x3
+    PART_LDM_COMPONENT_TYPE_RAID    = 0x3
 } PartLDMComponentType;
 
 #define PART_TYPE_LDM_COMPONENT_TYPE (part_ldm_component_type_get_type())

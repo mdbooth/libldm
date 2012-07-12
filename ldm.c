@@ -502,8 +502,8 @@ part_ldm_component_type_get_type(void)
               "PART_LDM_VOLUME_TYPE_STRIPED", "striped" },
             { PART_LDM_COMPONENT_TYPE_SPANNED,
               "PART_LDM_VOLUME_TYPE_SPANNED", "spanned" },
-            { PART_LDM_COMPONENT_TYPE_MIRRORED,
-              "PART_LDM_VOLUME_TYPE_MIRRORED", "mirrored" }
+            { PART_LDM_COMPONENT_TYPE_RAID,
+              "PART_LDM_VOLUME_TYPE_RAID", "raid" }
         };
         etype = g_enum_register_static("PartLDMComponentType", values);
     }
@@ -1336,7 +1336,7 @@ _parse_vblk_comp(const guint8 revision, const guint16 flags,
     comp->type = *((uint8_t *) vblk); vblk++;
     if (comp->type != PART_LDM_COMPONENT_TYPE_STRIPED &&
         comp->type != PART_LDM_COMPONENT_TYPE_SPANNED &&
-        comp->type != PART_LDM_COMPONENT_TYPE_MIRRORED)
+        comp->type != PART_LDM_COMPONENT_TYPE_RAID)
     {
         g_set_error(err, LDM_ERROR, PART_LDM_ERROR_NOTSUPPORTED,
                     "Component VBLK OID=%u has unsupported type %u",
@@ -1824,7 +1824,7 @@ part_ldm_disk_group_dump(PartLDMDiskGroup *o)
             switch (comp->priv->type) {
             case PART_LDM_COMPONENT_TYPE_STRIPED: comp_type = "STRIPED"; break;
             case PART_LDM_COMPONENT_TYPE_SPANNED: comp_type = "SPANNED"; break;
-            case PART_LDM_COMPONENT_TYPE_MIRRORED: comp_type = "MIRRORED"; break;
+            case PART_LDM_COMPONENT_TYPE_RAID: comp_type = "RAID"; break;
             }
             g_message("    Type: %s", comp_type);
             if (comp->priv->stripe_size > 0)
