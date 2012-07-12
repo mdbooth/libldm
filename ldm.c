@@ -218,7 +218,6 @@ struct _PartLDMDiskGroupPrivate
 {
     uuid_t guid;
 
-    char *name;
     uint64_t sequence;
 
     uint32_t n_disks;
@@ -234,12 +233,37 @@ struct _PartLDMDiskGroupPrivate
 
 G_DEFINE_TYPE(PartLDMDiskGroup, part_ldm_disk_group, G_TYPE_OBJECT)
 
+enum {
+    PROP_PART_LDM_DISK_GROUP_PROP0,
+    PROP_PART_LDM_DISK_GROUP_GUID
+};
+
+static void
+part_ldm_disk_group_get_property(GObject * const o, const guint property_id,
+                                 GValue * const value, GParamSpec * const pspec)
+{
+    PartLDMDiskGroup * const dg = PART_LDM_DISK_GROUP(o);
+    PartLDMDiskGroupPrivate * const priv = dg->priv;
+
+    switch (property_id) {
+    case PROP_PART_LDM_DISK_GROUP_GUID:
+        {
+            char guid_str[37];
+            uuid_unparse(priv->guid, guid_str);
+            g_value_set_string(value, guid_str);
+        }
+        break;
+
+    default:
+        G_OBJECT_WARN_INVALID_PROPERTY_ID(o, property_id, pspec);
+    }
+}
+
 static void
 part_ldm_disk_group_finalize(GObject * const object)
 {
     PartLDMDiskGroup *dg = PART_LDM_DISK_GROUP(object);
 
-    g_free(dg->priv->name); dg->priv->name = NULL;
     g_array_unref(dg->priv->vols); dg->priv->vols = NULL;
     g_array_unref(dg->priv->comps); dg->priv->comps = NULL;
     g_array_unref(dg->priv->parts); dg->priv->vols = NULL;
@@ -251,8 +275,24 @@ part_ldm_disk_group_class_init(PartLDMDiskGroupClass * const klass)
 {
     GObjectClass *object_class = G_OBJECT_CLASS(klass);
     object_class->finalize = part_ldm_disk_group_finalize;
+    object_class->get_property = part_ldm_disk_group_get_property;
 
     g_type_class_add_private(klass, sizeof(PartLDMDiskGroupPrivate));
+
+    /**
+     * PartLDMDiskGroup:guid:
+     *
+     * A string representation of the disk group's GUID.
+     */
+    g_object_class_install_property(
+        object_class,
+        PROP_PART_LDM_DISK_GROUP_GUID,
+        g_param_spec_string(
+            "guid", "GUID",
+            "A string representation of the disk group's GUID",
+            NULL, G_PARAM_READABLE | G_PARAM_STATIC_STRINGS
+        )
+    );
 }
 
 static void
@@ -304,6 +344,43 @@ struct _PartLDMVolumePrivate
 
 G_DEFINE_TYPE(PartLDMVolume, part_ldm_volume, G_TYPE_OBJECT)
 
+enum {
+    PROP_PART_LDM_VOLUME_PROP0,
+    PROP_PART_LDM_VOLUME_NAME,
+    PROP_PART_LDM_VOLUME_TYPE,
+    PROP_PART_LDM_VOLUME_SIZE,
+    PROP_PART_LDM_VOLUME_PART_TYPE,
+    PROP_PART_LDM_VOLUME_HINT
+};
+
+static void
+part_ldm_volume_get_property(GObject * const o, const guint property_id,
+                             GValue * const value, GParamSpec *pspec)
+{
+    PartLDMVolume * const vol = PART_LDM_VOLUME(o);
+    PartLDMVolumePrivate * const priv = vol->priv;
+
+    switch (property_id) {
+    case PROP_PART_LDM_VOLUME_NAME:
+        g_value_set_string(value, priv->name); break;
+
+    case PROP_PART_LDM_VOLUME_TYPE:
+        g_value_set_enum(value, priv->type); break;
+
+    case PROP_PART_LDM_VOLUME_SIZE:
+        g_value_set_uint64(value, priv->size); break;
+
+    case PROP_PART_LDM_VOLUME_PART_TYPE:
+        g_value_set_uint(value, priv->part_type); break;
+
+    case PROP_PART_LDM_VOLUME_HINT:
+        g_value_set_string(value, priv->hint); break;
+
+    default:
+        G_OBJECT_WARN_INVALID_PROPERTY_ID(o, property_id, pspec);
+    }
+}
+
 static void
 part_ldm_volume_finalize(GObject * const object)
 {
@@ -324,8 +401,86 @@ part_ldm_volume_class_init(PartLDMVolumeClass * const klass)
 {
     GObjectClass *object_class = G_OBJECT_CLASS(klass);
     object_class->finalize = part_ldm_volume_finalize;
+    object_class->get_property = part_ldm_volume_get_property;
 
     g_type_class_add_private(klass, sizeof(PartLDMVolumePrivate));
+
+    /**
+     * PartLDMVolume:name:
+     *
+     * The volume's name.
+     */
+    g_object_class_install_property(
+        object_class,
+        PROP_PART_LDM_VOLUME_NAME,
+        g_param_spec_string(
+            "name", "Name", "The volume's name",
+            NULL, G_PARAM_READABLE | G_PARAM_STATIC_STRINGS
+        )
+    );
+
+    /**
+     * PartLDMVolume:type:
+     *
+     * The volume type: gen or raid5.
+     */
+    g_object_class_install_property(
+        object_class,
+        PROP_PART_LDM_VOLUME_TYPE,
+        g_param_spec_enum(
+            "type", "Type", "The volume type: gen or raid5",
+            PART_TYPE_LDM_VOLUME_TYPE, PART_LDM_VOLUME_TYPE_GEN,
+            G_PARAM_READABLE | G_PARAM_STATIC_STRINGS
+        )
+    );
+
+    /**
+     * PartLDMVolume:size:
+     *
+     * The volume size in sectors.
+     */
+    g_object_class_install_property(
+        object_class,
+        PROP_PART_LDM_VOLUME_SIZE,
+        g_param_spec_uint64(
+            "size", "Size", "The volume size in sectors",
+            0, G_MAXUINT64, 0,
+            G_PARAM_READABLE | G_PARAM_STATIC_STRINGS
+        )
+    );
+
+    /**
+     * PartLDMVolume:part_type:
+     *
+     * A 1-byte type descriptor of the volume's contents. This descriptor has
+     * the same meaning as for an MBR partition.
+     */
+    g_object_class_install_property(
+        object_class,
+        PROP_PART_LDM_VOLUME_PART_TYPE,
+        g_param_spec_uint(
+            "part-type", "Partition Type", "A 1-byte type descriptor of the "
+            "volume's contents. This descriptor has the same meaning as for "
+            "an MBR partition",
+            0, G_MAXUINT8, 0,
+            G_PARAM_READABLE | G_PARAM_STATIC_STRINGS
+        )
+    );
+
+    /**
+     * PartLDMVolume:hint:
+     *
+     * A hint to Windows as to which drive letter to assign to this volume.
+     */
+    g_object_class_install_property(
+        object_class,
+        PROP_PART_LDM_VOLUME_HINT,
+        g_param_spec_string(
+            "hint", "Hint", "A hint to Windows as to which drive letter to "
+            "assign to this volume",
+            NULL, G_PARAM_READABLE | G_PARAM_STATIC_STRINGS
+        )
+    );
 }
 
 static void
@@ -376,6 +531,39 @@ struct _PartLDMComponentPrivate
 
 G_DEFINE_TYPE(PartLDMComponent, part_ldm_component, G_TYPE_OBJECT)
 
+enum {
+    PROP_PART_LDM_COMPONENT_PROP0,
+    PROP_PART_LDM_COMPONENT_NAME,
+    PROP_PART_LDM_COMPONENT_TYPE,
+    PROP_PART_LDM_COMPONENT_STRIPE_SIZE,
+    PROP_PART_LDM_COMPONENT_N_COLUMNS
+};
+
+static void
+part_ldm_component_get_property(GObject * const o, const guint property_id,
+                                GValue * const value, GParamSpec * const pspec)
+{
+    PartLDMComponent * const comp = PART_LDM_COMPONENT(o);
+    PartLDMComponentPrivate * const priv = comp->priv;
+
+    switch (property_id) {
+    case PROP_PART_LDM_COMPONENT_NAME:
+        g_value_set_string(value, priv->name); break;
+
+    case PROP_PART_LDM_COMPONENT_TYPE:
+        g_value_set_enum(value, priv->type); break;
+
+    case PROP_PART_LDM_COMPONENT_STRIPE_SIZE:
+        g_value_set_uint64(value, priv->stripe_size); break;
+
+    case PROP_PART_LDM_COMPONENT_N_COLUMNS:
+        g_value_set_uint(value, priv->n_columns); break;
+
+    default:
+        G_OBJECT_WARN_INVALID_PROPERTY_ID(o, property_id, pspec);
+    }
+}
+
 static void
 part_ldm_component_finalize(GObject * const object)
 {
@@ -392,8 +580,74 @@ part_ldm_component_class_init(PartLDMComponentClass * const klass)
 {
     GObjectClass *object_class = G_OBJECT_CLASS(klass);
     object_class->finalize = part_ldm_component_finalize;
+    object_class->get_property = part_ldm_component_get_property;
 
     g_type_class_add_private(klass, sizeof(PartLDMComponentPrivate));
+
+    /**
+     * PartLDMComponent:name:
+     *
+     * The name of the component.
+     */
+    g_object_class_install_property(
+        object_class,
+        PROP_PART_LDM_COMPONENT_NAME,
+        g_param_spec_string(
+            "name", "Name", "The name of the component",
+            NULL, G_PARAM_READABLE | G_PARAM_STATIC_STRINGS
+        )
+    );
+
+    /**
+     * PartLDMComponent:type:
+     *
+     * The type of the component.
+     */
+    g_object_class_install_property(
+        object_class,
+        PROP_PART_LDM_COMPONENT_TYPE,
+        g_param_spec_enum(
+            "type", "Type", "The type of the component",
+            PART_TYPE_LDM_COMPONENT_TYPE, PART_LDM_COMPONENT_TYPE_STRIPED,
+            G_PARAM_READABLE | G_PARAM_STATIC_STRINGS
+        )
+    );
+
+    /**
+     * PartLDMComponent:stripe_size:
+     *
+     * The stripe size of the component in sectors, if relevant. This will be
+     * zero if the component does not have a stripe size.
+     */
+    g_object_class_install_property(
+        object_class,
+        PROP_PART_LDM_COMPONENT_STRIPE_SIZE,
+        g_param_spec_uint64(
+            "stripe-size", "Stripe Size", "The stripe size of the component "
+            "in sectors, if relevant. This will be zero if the component does "
+            "not have a stripe size",
+            0, G_MAXUINT64, 0,
+            G_PARAM_READABLE | G_PARAM_STATIC_STRINGS
+        )
+    );
+
+    /**
+     * PartLDMComponent:n_columns:
+     *
+     * The number of columns the component has, if relevant. This will be zero
+     * if the component does not have columns.
+     */
+    g_object_class_install_property(
+        object_class,
+        PROP_PART_LDM_COMPONENT_N_COLUMNS,
+        g_param_spec_uint(
+            "n-columns", "No. Columns", "The number of columns the component "
+            "has, if relevant. This will be zero if the component does not "
+            "have columns",
+            0, G_MAXUINT32, 0,
+            G_PARAM_READABLE | G_PARAM_STATIC_STRINGS
+        )
+    );
 }
 
 static void
@@ -425,6 +679,43 @@ struct _PartLDMPartitionPrivate
 
 G_DEFINE_TYPE(PartLDMPartition, part_ldm_partition, G_TYPE_OBJECT)
 
+enum {
+    PROP_PART_LDM_PARTITION_PROP0,
+    PROP_PART_LDM_PARTITION_NAME,
+    PROP_PART_LDM_PARTITION_START,
+    PROP_PART_LDM_PARTITION_VOL_OFFSET,
+    PROP_PART_LDM_PARTITION_SIZE,
+    PROP_PART_LDM_PARTITION_INDEX
+};
+
+static void
+part_ldm_partition_get_property(GObject * const o, const guint property_id,
+                                GValue * const value, GParamSpec * const pspec)
+{
+    PartLDMPartition * const part = PART_LDM_PARTITION(o);
+    PartLDMPartitionPrivate * const priv = part->priv;
+
+    switch (property_id) {
+    case PROP_PART_LDM_PARTITION_NAME:
+        g_value_set_string(value, priv->name); break;
+
+    case PROP_PART_LDM_PARTITION_START:
+        g_value_set_uint64(value, priv->start); break;
+
+    case PROP_PART_LDM_PARTITION_VOL_OFFSET:
+        g_value_set_uint64(value, priv->vol_offset); break;
+
+    case PROP_PART_LDM_PARTITION_SIZE:
+        g_value_set_uint64(value, priv->size); break;
+
+    case PROP_PART_LDM_PARTITION_INDEX:
+        g_value_set_uint(value, priv->index); break;
+
+    default:
+        G_OBJECT_WARN_INVALID_PROPERTY_ID(o, property_id, pspec);
+    }
+}
+
 static void
 part_ldm_partition_finalize(GObject * const object)
 {
@@ -440,8 +731,87 @@ part_ldm_partition_class_init(PartLDMPartitionClass * const klass)
 {
     GObjectClass *object_class = G_OBJECT_CLASS(klass);
     object_class->finalize = part_ldm_partition_finalize;
+    object_class->get_property = part_ldm_partition_get_property;
 
     g_type_class_add_private(klass, sizeof(PartLDMPartitionPrivate));
+
+    /**
+     * PartLDMPartition:name:
+     *
+     * The name of the partition.
+     */
+    g_object_class_install_property(
+        object_class,
+        PROP_PART_LDM_PARTITION_NAME,
+        g_param_spec_string(
+            "name", "Name", "The name of the partition",
+            NULL, G_PARAM_READABLE | G_PARAM_STATIC_STRINGS
+        )
+    );
+
+    /**
+     * PartLDMPartition:start:
+     *
+     * The start sector of the partition.
+     */
+    g_object_class_install_property(
+        object_class,
+        PROP_PART_LDM_PARTITION_START,
+        g_param_spec_uint64(
+            "start", "Start", "The start sector of the partition",
+            0, G_MAXUINT64, 0,
+            G_PARAM_READABLE | G_PARAM_STATIC_STRINGS
+        )
+    );
+
+    /**
+     * PartLDMPartition:volume_offset:
+     *
+     * The offset of the start of this partition from the start of the volume in
+     * sectors.
+     */
+    g_object_class_install_property(
+        object_class,
+        PROP_PART_LDM_PARTITION_VOL_OFFSET,
+        g_param_spec_uint64(
+            "vol-offset", "Volume Offset", "The offset of the start of this "
+            "partition from the start of the volume in sectors",
+            0, G_MAXUINT64, 0,
+            G_PARAM_READABLE | G_PARAM_STATIC_STRINGS
+        )
+    );
+
+    /**
+     * PartLDMPartition:size:
+     *
+     * The size of the partition in sectors.
+     */
+    g_object_class_install_property(
+        object_class,
+        PROP_PART_LDM_PARTITION_SIZE,
+        g_param_spec_uint64(
+            "size", "Size", "The size of the partition in sectors",
+            0, G_MAXUINT64, 0,
+            G_PARAM_READABLE | G_PARAM_STATIC_STRINGS
+        )
+    );
+
+    /**
+     * PartLDMPartition:index:
+     *
+     * The index of this partition in the set of partitions of the containing
+     * component.
+     */
+    g_object_class_install_property(
+        object_class,
+        PROP_PART_LDM_PARTITION_INDEX,
+        g_param_spec_uint(
+            "index", "Index", "The index of this partition in the set of "
+            "partitions of the containing component",
+            0, G_MAXUINT32, 0,
+            G_PARAM_READABLE | G_PARAM_STATIC_STRINGS
+        )
+    );
 }
 
 static void
@@ -467,6 +837,40 @@ struct _PartLDMDiskPrivate
 
 G_DEFINE_TYPE(PartLDMDisk, part_ldm_disk, G_TYPE_OBJECT)
 
+enum {
+    PROP_PART_LDM_DISK_PROP0,
+    PROP_PART_LDM_DISK_NAME,
+    PROP_PART_LDM_DISK_GUID,
+    PROP_PART_LDM_DISK_DEVICE
+};
+
+static void
+part_ldm_disk_get_property(GObject * const o, const guint property_id,
+                           GValue * const value, GParamSpec * const pspec)
+{
+    const PartLDMDisk * const disk = PART_LDM_DISK(o);
+    const PartLDMDiskPrivate * const priv = disk->priv;
+
+    switch (property_id) {
+    case PROP_PART_LDM_DISK_NAME:
+        g_value_set_string(value, priv->name); break;
+
+    case PROP_PART_LDM_DISK_GUID:
+        {
+            char guid_str[37];
+            uuid_unparse(priv->guid, guid_str);
+            g_value_set_string(value, guid_str);
+        }
+        break;
+
+    case PROP_PART_LDM_DISK_DEVICE:
+        g_value_set_string(value, priv->device); break;
+
+    default:
+        G_OBJECT_WARN_INVALID_PROPERTY_ID(o, property_id, pspec);
+    }
+}
+
 static void
 part_ldm_disk_finalize(GObject * const object)
 {
@@ -482,8 +886,53 @@ part_ldm_disk_class_init(PartLDMDiskClass * const klass)
 {
     GObjectClass *object_class = G_OBJECT_CLASS(klass);
     object_class->finalize = part_ldm_disk_finalize;
+    object_class->get_property = part_ldm_disk_get_property;
 
     g_type_class_add_private(klass, sizeof(PartLDMDiskPrivate));
+
+    /**
+     * PartLDMDisk:name:
+     *
+     * The name of the disk.
+     */
+    g_object_class_install_property(
+        object_class,
+        PROP_PART_LDM_DISK_NAME,
+        g_param_spec_string(
+            "name", "Name", "The name of the disk",
+            NULL, G_PARAM_READABLE | G_PARAM_STATIC_STRINGS
+        )
+    );
+
+    /**
+     * PartLDMDisk:guid:
+     *
+     * The GUID of the disk.
+     */
+    g_object_class_install_property(
+        object_class,
+        PROP_PART_LDM_DISK_GUID,
+        g_param_spec_string(
+            "guid", "GUID", "The GUID of the disk",
+            NULL, G_PARAM_READABLE | G_PARAM_STATIC_STRINGS
+        )
+    );
+
+    /**
+     * PartLDMDisk:device:
+     *
+     * The underlying device of this disk. This may be NULL if the disk is
+     * missing from the disk group.
+     */
+    g_object_class_install_property(
+        object_class,
+        PROP_PART_LDM_DISK_DEVICE,
+        g_param_spec_string(
+            "device", "Device", "The underlying device of this disk. This may "
+            "be NULL if the disk is missing from the disk group",
+            NULL, G_PARAM_READABLE | G_PARAM_STATIC_STRINGS
+        )
+    );
 }
 
 static void
@@ -1329,12 +1778,6 @@ part_ldm_new(GError ** const err)
     return ldm;
 }
 
-GArray *
-part_ldm_get_disk_groups(PartLDM *o, GError **err)
-{
-    return o->priv->disk_groups;
-}
-
 void
 part_ldm_disk_group_dump(PartLDMDiskGroup *o)
 {
@@ -1381,7 +1824,7 @@ part_ldm_disk_group_dump(PartLDMDiskGroup *o)
             switch (comp->priv->type) {
             case PART_LDM_COMPONENT_TYPE_STRIPED: comp_type = "STRIPED"; break;
             case PART_LDM_COMPONENT_TYPE_SPANNED: comp_type = "SPANNED"; break;
-            case PART_LDM_COMPONENT_TYPE_MIRRORED: comp_type = "MIRRORED";
+            case PART_LDM_COMPONENT_TYPE_MIRRORED: comp_type = "MIRRORED"; break;
             }
             g_message("    Type: %s", comp_type);
             if (comp->priv->stripe_size > 0)
@@ -1408,4 +1851,39 @@ part_ldm_disk_group_dump(PartLDMDiskGroup *o)
             }
         }
     }
+}
+
+GArray *
+part_ldm_get_disk_groups(PartLDM *o, GError **err)
+{
+    g_array_ref(o->priv->disk_groups);
+    return o->priv->disk_groups;
+}
+
+GArray *
+part_ldm_disk_group_get_volumes(PartLDMDiskGroup *o, GError **err)
+{
+    g_array_ref(o->priv->vols);
+    return o->priv->vols;
+}
+
+GArray *
+part_ldm_volume_get_components(PartLDMVolume *o, GError **err)
+{
+    g_array_ref(o->priv->comps);
+    return o->priv->comps;
+}
+
+GArray *
+part_ldm_component_get_partitions(PartLDMComponent *o, GError **err)
+{
+    g_array_ref(o->priv->parts);
+    return o->priv->parts;
+}
+
+PartLDMDisk *
+part_ldm_partition_get_disk(PartLDMPartition *o, GError **err)
+{
+    g_object_ref(o->priv->disk);
+    return o->priv->disk;
 }

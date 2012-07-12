@@ -228,9 +228,14 @@ GType part_ldm_disk_group_get_type(void);
 
 PartLDM *part_ldm_new(GError **err);
 gboolean part_ldm_add(PartLDM *o, const gchar *path, GError **err);
-GArray *part_ldm_get_disk_groups(PartLDM *o, GError **err);
 
 void part_ldm_disk_group_dump(PartLDMDiskGroup *o);
+
+GArray *part_ldm_get_disk_groups(PartLDM *o, GError **err);
+GArray *part_ldm_disk_group_get_volumes(PartLDMDiskGroup *o, GError **err);
+GArray *part_ldm_volume_get_components(PartLDMVolume *o, GError **err);
+GArray *part_ldm_component_get_partitions(PartLDMComponent *o, GError **err);
+PartLDMDisk *part_ldm_partition_get_disk(PartLDMPartition *o, GError **err);
 
 G_END_DECLS
 
