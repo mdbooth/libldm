@@ -264,10 +264,18 @@ part_ldm_disk_group_finalize(GObject * const object)
 {
     PartLDMDiskGroup *dg = PART_LDM_DISK_GROUP(object);
 
-    g_array_unref(dg->priv->vols); dg->priv->vols = NULL;
-    g_array_unref(dg->priv->comps); dg->priv->comps = NULL;
-    g_array_unref(dg->priv->parts); dg->priv->vols = NULL;
-    g_array_unref(dg->priv->disks); dg->priv->disks = NULL;
+    if (dg->priv->vols) {
+        g_array_unref(dg->priv->vols); dg->priv->vols = NULL;
+    }
+    if (dg->priv->comps) {
+        g_array_unref(dg->priv->comps); dg->priv->comps = NULL;
+    }
+    if (dg->priv->parts) {
+        g_array_unref(dg->priv->parts); dg->priv->vols = NULL;
+    }
+    if (dg->priv->disks) {
+        g_array_unref(dg->priv->disks); dg->priv->disks = NULL;
+    }
 }
 
 static void
@@ -389,7 +397,7 @@ part_ldm_volume_finalize(GObject * const object)
 
     g_free(priv->name); priv->name = NULL;
 
-    g_array_unref(priv->comps); priv->comps = NULL;
+    if (priv->comps) { g_array_unref(priv->comps); priv->comps = NULL; }
 
     g_free(priv->id1); priv->id1 = NULL;
     g_free(priv->id2); priv->id2 = NULL;
@@ -572,7 +580,7 @@ part_ldm_component_finalize(GObject * const object)
 
     g_free(priv->name); priv->name = NULL;
 
-    g_array_unref(priv->parts); priv->parts = NULL;
+    if (priv->parts) { g_array_unref(priv->parts); priv->parts = NULL; }
 }
 
 static void
