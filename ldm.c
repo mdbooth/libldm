@@ -1261,8 +1261,10 @@ _parse_vblk_vol(const guint8 revision, const guint16 flags,
     }
     g_free(type);
 
-    /* Zeroes */
-    vblk += 1;
+    /* Unknown. N.B. Documentation lists this as a single zero, but I have
+     * observed it to have the variable length string value: '8000000000000000'
+     */
+    _parse_var_skip(&vblk);
 
     /* Volume state */
     vblk += 14;
