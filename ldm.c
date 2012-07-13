@@ -341,6 +341,9 @@ struct _PartLDMVolumePrivate
     guint64 size;
     guint8 part_type;
 
+    guint8 volume_type;
+    guint8 flags; /* Not exposed: unclear what it means */
+
     guint32 n_comps;
     GArray *comps;
 
@@ -1278,7 +1281,7 @@ _parse_vblk_vol(const guint8 revision, const guint16 flags,
     vblk += 14;
 
     /* Other volume type, not sure what this one's for */
-    vblk += 1;
+    vol->volume_type = *(uint8_t *)vblk; vblk += 1;
 
     /* Unknown */
     vblk += 1;
@@ -1290,7 +1293,7 @@ _parse_vblk_vol(const guint8 revision, const guint16 flags,
     vblk += 3;
 
     /* Flags */
-    vblk += 1;
+    vol->flags = *(uint8_t *)vblk; vblk += 1;
 
     if (!_parse_var_int32(&vblk, &vol->n_comps, "n_children", "volume", err))
         return FALSE;
@@ -1819,6 +1822,8 @@ part_ldm_disk_group_dump(PartLDMDiskGroup *o)
         g_message("  Type: %s", vol_type);
         g_message("  Size: %lu", vol->priv->size);
         g_message("  Partition type: %hhu", vol->priv->part_type);
+        g_message("  Volume Type: %hhu", vol->priv->volume_type);
+        g_message("  Flags: %hhu", vol->priv->flags);
         if (vol->priv->id1) g_message("  ID1: %s", vol->priv->id1);
         if (vol->priv->id2) g_message("  ID2: %s", vol->priv->id2);
         if (vol->priv->size2 > 0) g_message("  Size2: %lu", vol->priv->size2);
