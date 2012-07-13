@@ -1269,18 +1269,8 @@ _parse_vblk_vol(const guint8 revision, const guint16 flags,
         return FALSE;
     vol->name = _parse_var_string(&vblk);
 
-    char *type = _parse_var_string(&vblk);
-    if (strcmp(type, "gen") == 0) {
-        vol->type = PART_LDM_VOLUME_TYPE_GEN;
-    } else if (strcmp(type, "raid5") == 0) {
-        vol->type = PART_LDM_VOLUME_TYPE_RAID5;
-    } else {
-        g_set_error(err, LDM_ERROR, PART_LDM_ERROR_NOTSUPPORTED,
-                    "Unsupported volume VBLK type %s", type);
-        g_free(type);
-        return FALSE;
-    }
-    g_free(type);
+    /* Volume type: 'gen' or 'raid5'. We parse this elsewhere */
+    _parse_var_skip(&vblk);
 
     /* Unknown. N.B. Documentation lists this as a single zero, but I have
      * observed it to have the variable length string value: '8000000000000000'
@@ -1290,8 +1280,17 @@ _parse_vblk_vol(const guint8 revision, const guint16 flags,
     /* Volume state */
     vblk += 14;
 
-    /* Other volume type, not sure what this one's for */
-    vol->volume_type = *(uint8_t *)vblk; vblk += 1;
+    vol->type = *(uint8_t *)vblk; vblk += 1;
+    switch(vol->type) {
+    case PART_LDM_VOLUME_TYPE_GEN:
+    case PART_LDM_VOLUME_TYPE_RAID5:
+        break;
+
+    default:
+        g_set_error(err, LDM_ERROR, PART_LDM_ERROR_NOTSUPPORTED,
+                    "Unsupported volume VBLK type %u", vol->type);
+        return FALSE;
+    }
 
     /* Unknown */
     vblk += 1;

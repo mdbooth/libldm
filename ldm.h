@@ -87,8 +87,8 @@ struct _PartLDMDiskGroupClass
 /* PartLDMVolumeType */
 
 typedef enum {
-    PART_LDM_VOLUME_TYPE_GEN,
-    PART_LDM_VOLUME_TYPE_RAID5
+    PART_LDM_VOLUME_TYPE_GEN = 0x3,
+    PART_LDM_VOLUME_TYPE_RAID5 = 0x4
 } PartLDMVolumeType;
 
 #define PART_TYPE_LDM_VOLUME_TYPE (part_ldm_volume_type_get_type())
