@@ -122,20 +122,27 @@ struct _ldm_vmdb
     uint64_t last_accessed;
 } __attribute__((__packed__));
 
+/* This is the header of every VBLK entry */
 struct _ldm_vblk_head
 {
     char magic[4]; // "VBLK"
 
     uint32_t seq;
-    uint32_t group;
 
-    uint16_t record;
-    uint16_t n_records;
+    uint32_t record_id;
+    uint16_t entry;
+    uint16_t entries_total;
+} __attribute__((__packed__));
 
+/* This is the header of every VBLK record, which may span multiple VBLK
+ * entries. I.e. if a VBLK record is split across 2 entries, only the first will
+ * have this header immediately following the entry header. */
+struct _ldm_vblk_rec_head
+{
     uint16_t status;
-    uint8_t  record_flags;
-    uint8_t  record_type;
-    uint32_t record_size;
+    uint8_t  flags;
+    uint8_t  type;
+    uint32_t size;
 } __attribute__((__packed__));
 
 /* GLIB error handling */
@@ -183,6 +190,11 @@ static void
 _unref_object(gpointer const data)
 {
     g_object_unref(*(GObject **)data);
+}
+
+static void _free_pointer(gpointer const data)
+{
+    g_free(*(gpointer *)data);
 }
 
 static void
@@ -1253,8 +1265,6 @@ _parse_vblk_vol(const guint8 revision, const guint16 flags,
         return FALSE;
     }
 
-    vblk += sizeof(struct _ldm_vblk_head);
-
     if (!_parse_var_int32(&vblk, &vol->id, "id", "volume", err))
         return FALSE;
     vol->name = _parse_var_string(&vblk);
@@ -1339,7 +1349,6 @@ _parse_vblk_comp(const guint8 revision, const guint16 flags,
         return FALSE;
     }
 
-    vblk += sizeof(struct _ldm_vblk_head);
     if (!_parse_var_int32(&vblk, &comp->id, "id", "volume", err)) return FALSE;
     comp->name = _parse_var_string(&vblk);
 
@@ -1402,7 +1411,6 @@ _parse_vblk_part(const guint8 revision, const guint16 flags,
         return FALSE;
     }
 
-    vblk += sizeof(struct _ldm_vblk_head);
     if (!_parse_var_int32(&vblk, &part->id, "id", "volume", err)) return FALSE;
     part->name = _parse_var_string(&vblk);
 
@@ -1438,7 +1446,6 @@ _parse_vblk_disk(const guint8 revision, const guint16 flags,
                  const guint8 *vblk, PartLDMDiskPrivate * const disk,
                  GError ** const err)
 {
-    vblk += sizeof(struct _ldm_vblk_head);
     if (!_parse_var_int32(&vblk, &disk->id, "id", "volume", err)) return FALSE;
     disk->name = _parse_var_string(&vblk);
 
@@ -1471,11 +1478,93 @@ _parse_vblk_disk(const guint8 revision, const guint16 flags,
     return TRUE;
 }
 
+struct _spanned_rec {
+    uint32_t record_id;
+    uint16_t entries_total;
+    uint16_t entries_found;
+    int offset;
+    char data[];
+};
+
+static gboolean
+_parse_vblk(const void * data, PartLDMDiskGroupPrivate * const dg,
+            const gchar * const path, const int offset,
+            GError ** const err)
+{
+    const struct _ldm_vblk_rec_head * const rec_head = data;
+
+    const guint8 type = rec_head->type & 0x0F;
+    const guint8 revision = (rec_head->type & 0xF0) >> 4;
+
+    data += sizeof(struct _ldm_vblk_rec_head);
+
+    switch (type) {
+    case 0x00:
+        /* Blank VBLK */
+        break;
+
+    case 0x01:
+    {
+        PartLDMVolume * const vol =
+            PART_LDM_VOLUME(g_object_new(PART_TYPE_LDM_VOLUME, NULL));
+        g_array_append_val(dg->vols, vol);
+        if (!_parse_vblk_vol(revision, rec_head->flags, data, vol->priv, err))
+            return FALSE;
+        break;
+    }
+
+    case 0x02:
+    {
+        PartLDMComponent * const comp =
+            PART_LDM_COMPONENT(g_object_new(PART_TYPE_LDM_COMPONENT, NULL));
+        g_array_append_val(dg->comps, comp);
+        if (!_parse_vblk_comp(revision, rec_head->flags, data, comp->priv, err))
+            return FALSE;
+        break;
+    }
+
+    case 0x03:
+    {
+        PartLDMPartition * const part =
+            PART_LDM_PARTITION(g_object_new(PART_TYPE_LDM_PARTITION, NULL));
+        g_array_append_val(dg->parts, part);
+        if (!_parse_vblk_part(revision, rec_head->flags, data, part->priv, err))
+            return FALSE;
+        break;
+    }
+
+    case 0x04:
+    {
+        PartLDMDisk * const disk =
+            PART_LDM_DISK(g_object_new(PART_TYPE_LDM_DISK, NULL));
+        g_array_append_val(dg->disks, disk);
+        if (!_parse_vblk_disk(revision, rec_head->flags, data, disk->priv, err))
+            return FALSE;
+        break;
+    }
+
+    case 0x05:
+        /* We don't need any addition about the disk group */
+        break;
+
+    default:
+        g_set_error(err, LDM_ERROR, PART_LDM_ERROR_NOTSUPPORTED,
+                    "Unknown VBLK type %hhi in %s at config offset %X",
+                    type, path, offset);
+        return FALSE;
+    }
+
+    return TRUE;
+}
+
 static gboolean
 _parse_vblks(const void * const config, const gchar * const path,
           const struct _ldm_vmdb * const vmdb,
           PartLDMDiskGroupPrivate * const dg, GError ** const err)
 {
+    GArray *spanned = g_array_new(FALSE, FALSE, sizeof(gpointer));
+    g_array_set_clear_func(spanned, _free_pointer);
+
     dg->sequence = be64toh(vmdb->committed_seq);
 
     dg->n_disks = be32toh(vmdb->n_committed_vblks_disk);
@@ -1497,77 +1586,81 @@ _parse_vblks(const void * const config, const gchar * const path,
     g_array_set_clear_func(dg->vols, _unref_object);
 
     const guint16 vblk_size = be32toh(vmdb->vblk_size);
+    const guint16 vblk_data_size = vblk_size - sizeof(struct _ldm_vblk_head);
     const void *vblk = (void *)vmdb + be32toh(vmdb->vblk_first_offset);
     for(;;) {
+        const int offset = vblk - config;
+
         const struct _ldm_vblk_head * const head = vblk;
         if (memcmp(head->magic, "VBLK", 4) != 0) break;
 
-        const guint8 type = head->record_type & 0x0F;
-        const guint8 revision = (head->record_type & 0xF0) >> 4;
-
-        switch (type) {
-        case 0x00:
-            /* Blank VBLK */
-            break;
-
-        case 0x01:
+        /* Sanity check the header */
+        if (be16toh(head->entries_total) > 0 &&
+            be16toh(head->entry) >= be16toh(head->entries_total))
         {
-            PartLDMVolume * const vol =
-                PART_LDM_VOLUME(g_object_new(PART_TYPE_LDM_VOLUME, NULL));
-            g_array_append_val(dg->vols, vol);
-            if (!_parse_vblk_vol(revision, head->record_flags,
-                                 vblk, vol->priv, err))
-                return FALSE;
-            break;
+            g_set_error(err, LDM_ERROR, PART_LDM_ERROR_INVALID,
+                        "VBLK entry %u has entry (%hu) > total entries (%hu)",
+                        be32toh(head->seq), be16toh(head->entry),
+                        be16toh(head->entries_total));
+            goto error;
         }
 
-        case 0x02:
-        {
-            PartLDMComponent * const comp =
-                PART_LDM_COMPONENT(g_object_new(PART_TYPE_LDM_COMPONENT, NULL));
-            g_array_append_val(dg->comps, comp);
-            if (!_parse_vblk_comp(revision, head->record_flags,
-                                  vblk, comp->priv, err))
-                return FALSE;
-            break;
+        vblk += sizeof(struct _ldm_vblk_head);
+
+        /* Check for a spanned record */
+        if (be16toh(head->entries_total) > 1) {
+            /* Look for an existing record */
+            gboolean found = FALSE;
+            for (int i = 0; i < spanned->len; i++) {
+                struct _spanned_rec * const r =
+                    g_array_index(spanned, struct _spanned_rec *, i);
+
+                if (r->record_id == head->record_id) {
+                    r->entries_found++;
+                    memcpy(&r->data[be16toh(head->entry) * vblk_data_size],
+                           vblk, vblk_data_size);
+                    found = TRUE;
+                    break;
+                }
+            }
+            if (!found) {
+                struct _spanned_rec * const r =
+                    g_malloc0(offsetof(struct _spanned_rec, data) +
+                              head->entries_total * vblk_data_size);
+                g_array_append_val(spanned, r);
+                r->record_id = head->record_id;
+                r->entries_total = be16toh(head->entries_total);
+                r->entries_found = 1;
+                r->offset = offset;
+
+                memcpy(&r->data[be16toh(head->entry) * vblk_data_size],
+                       vblk, vblk_data_size);
+            }
         }
 
-        case 0x03:
-        {
-            PartLDMPartition * const part =
-                PART_LDM_PARTITION(g_object_new(PART_TYPE_LDM_PARTITION, NULL));
-            g_array_append_val(dg->parts, part);
-            if (!_parse_vblk_part(revision, head->record_flags,
-                                  vblk, part->priv, err))
-                return FALSE;
-            break;
-        }
-
-        case 0x04:
-        {
-            PartLDMDisk * const disk =
-                PART_LDM_DISK(g_object_new(PART_TYPE_LDM_DISK, NULL));
-            g_array_append_val(dg->disks, disk);
-            if (!_parse_vblk_disk(revision, head->record_flags,
-                                  vblk, disk->priv, err))
-                return FALSE;
-            break;
-        }
-
-        case 0x05:
-            /* We don't need any addition about the disk group */
-            break;
-
-        default:
-            g_set_error(err, LDM_ERROR, PART_LDM_ERROR_NOTSUPPORTED,
-                        "Unknown VBLK type %hhi in %s at config offset %lX",
-                        type, path,
-                        (unsigned long int)vblk - (unsigned long int)config);
-            return FALSE;
+        else {
+            if (!_parse_vblk(vblk, dg, path, offset, err)) goto error;
         }
         
-        vblk += vblk_size;
+        vblk += vblk_data_size;
     }
+
+    for (int i = 0; i < spanned->len; i++) {
+        struct _spanned_rec * const rec =
+            g_array_index(spanned, struct _spanned_rec *, i);
+
+        if (rec->entries_found != rec->entries_total) {
+            g_set_error(err, LDM_ERROR, PART_LDM_ERROR_INVALID,
+                        "Expected to find %hu entries for record %u, but "
+                        "found %hu", rec->entries_total, rec->record_id,
+                        rec->entries_found);
+            goto error;
+        }
+
+        if (!_parse_vblk(rec->data, dg, path, rec->offset, err)) goto error;
+    }
+
+    g_array_unref(spanned); spanned = NULL;
 
     if (dg->disks->len != dg->n_disks) {
         g_set_error(err, LDM_ERROR, PART_LDM_ERROR_INVALID,
@@ -1683,6 +1776,10 @@ _parse_vblks(const void * const config, const gchar * const path,
     }
 
     return TRUE;
+
+error:
+    if (spanned) { g_array_unref(spanned); spanned = NULL; }
+    return FALSE;
 }
 
 gboolean
