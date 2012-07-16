@@ -1891,7 +1891,7 @@ part_ldm_new(GError ** const err)
 }
 
 void
-part_ldm_disk_group_dump(PartLDMDiskGroup *o)
+part_ldm_disk_group_dump(PartLDMDiskGroup * const o)
 {
     const PartLDMDiskGroupPrivate * const dg = o->priv;
 
@@ -1968,35 +1968,36 @@ part_ldm_disk_group_dump(PartLDMDiskGroup *o)
 }
 
 GArray *
-part_ldm_get_disk_groups(PartLDM *o, GError **err)
+part_ldm_get_disk_groups(PartLDM * const o, GError ** const err)
 {
     g_array_ref(o->priv->disk_groups);
     return o->priv->disk_groups;
 }
 
 GArray *
-part_ldm_disk_group_get_volumes(PartLDMDiskGroup *o, GError **err)
+part_ldm_disk_group_get_volumes(PartLDMDiskGroup * const o, GError ** const err)
 {
     g_array_ref(o->priv->vols);
     return o->priv->vols;
 }
 
 GArray *
-part_ldm_volume_get_components(PartLDMVolume *o, GError **err)
+part_ldm_volume_get_components(PartLDMVolume * const o, GError ** const err)
 {
     g_array_ref(o->priv->comps);
     return o->priv->comps;
 }
 
 GArray *
-part_ldm_component_get_partitions(PartLDMComponent *o, GError **err)
+part_ldm_component_get_partitions(PartLDMComponent * const o,
+                                  GError ** const err)
 {
     g_array_ref(o->priv->parts);
     return o->priv->parts;
 }
 
 PartLDMDisk *
-part_ldm_partition_get_disk(PartLDMPartition *o, GError **err)
+part_ldm_partition_get_disk(PartLDMPartition * const o, GError ** const err)
 {
     g_object_ref(o->priv->disk);
     return o->priv->disk;
