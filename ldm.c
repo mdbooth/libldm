@@ -1355,10 +1355,13 @@ _parse_vblk_comp(const guint8 revision, const guint16 flags,
     _parse_var_skip(&vblk);
 
     comp->type = *((uint8_t *) vblk); vblk++;
-    if (comp->type != PART_LDM_COMPONENT_TYPE_STRIPED &&
-        comp->type != PART_LDM_COMPONENT_TYPE_SPANNED &&
-        comp->type != PART_LDM_COMPONENT_TYPE_RAID)
-    {
+    switch (comp->type) {
+    case PART_LDM_COMPONENT_TYPE_STRIPED:
+    case PART_LDM_COMPONENT_TYPE_SPANNED:
+    case PART_LDM_COMPONENT_TYPE_RAID:
+        break;
+
+    default:
         g_set_error(err, LDM_ERROR, PART_LDM_ERROR_NOTSUPPORTED,
                     "Component VBLK OID=%u has unsupported type %u",
                     comp->id, comp->type);
