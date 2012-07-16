@@ -1998,60 +1998,63 @@ part_ldm_disk_group_dump(PartLDMDiskGroup * const o)
     g_message("Volumes: %u", dg->n_vols);
 
     for (int i = 0; i < dg->n_vols; i++) {
-        const PartLDMVolume * const vol =
+        const PartLDMVolume * const vol_o =
             g_array_index(dg->vols, PartLDMVolume *, i);
+        const PartLDMVolumePrivate * const vol = vol_o->priv;
 
-        g_message("Volume: %s", vol->priv->name);
-        g_message("  ID: %u", vol->priv->id);
+        g_message("Volume: %s", vol->name);
+        g_message("  ID: %u", vol->id);
         const char * vol_type;
-        switch (vol->priv->type) {
+        switch (vol->type) {
         case PART_LDM_VOLUME_TYPE_GEN:          vol_type = "gen"; break;
         case PART_LDM_VOLUME_TYPE_RAID5:        vol_type = "raid5"; break;
         default:
             /* We checked this value when it was set, and it isn't possible to
              * modify it. This should be impossible. */
-            g_error("Unexpected volume type: %u", vol->priv->type);
+            g_error("Unexpected volume type: %u", vol->type);
         }
         g_message("  Type: %s", vol_type);
-        g_message("  Size: %lu", vol->priv->size);
-        g_message("  Partition type: %hhu", vol->priv->part_type);
-        g_message("  Volume Type: %hhu", vol->priv->volume_type);
-        g_message("  Flags: %hhu", vol->priv->flags);
-        if (vol->priv->id1) g_message("  ID1: %s", vol->priv->id1);
-        if (vol->priv->id2) g_message("  ID2: %s", vol->priv->id2);
-        if (vol->priv->size2 > 0) g_message("  Size2: %lu", vol->priv->size2);
-        if (vol->priv->hint) g_message("  Drive Hint: %s", vol->priv->hint);
+        g_message("  Size: %lu", vol->size);
+        g_message("  Partition type: %hhu", vol->part_type);
+        g_message("  Volume Type: %hhu", vol->volume_type);
+        g_message("  Flags: %hhu", vol->flags);
+        if (vol->id1) g_message("  ID1: %s", vol->id1);
+        if (vol->id2) g_message("  ID2: %s", vol->id2);
+        if (vol->size2 > 0) g_message("  Size2: %lu", vol->size2);
+        if (vol->hint) g_message("  Drive Hint: %s", vol->hint);
 
-        for (int j = 0; j < vol->priv->n_comps; j++) {
-            const PartLDMComponent * const comp =
-                g_array_index(vol->priv->comps, PartLDMComponent *, j);
+        for (int j = 0; j < vol->n_comps; j++) {
+            const PartLDMComponent * const comp_o =
+                g_array_index(vol->comps, PartLDMComponent *, j);
+            const PartLDMComponentPrivate * const comp = comp_o->priv;
 
-            g_message("  Component: %s", comp->priv->name);
-            g_message("    ID: %u", comp->priv->id);
+            g_message("  Component: %s", comp->name);
+            g_message("    ID: %u", comp->id);
             const char *comp_type = NULL;
-            switch (comp->priv->type) {
+            switch (comp->type) {
             case PART_LDM_COMPONENT_TYPE_STRIPED: comp_type = "STRIPED"; break;
             case PART_LDM_COMPONENT_TYPE_SPANNED: comp_type = "SPANNED"; break;
             case PART_LDM_COMPONENT_TYPE_RAID: comp_type = "RAID"; break;
             }
             g_message("    Type: %s", comp_type);
-            if (comp->priv->stripe_size > 0)
-                g_message("    Stripe Size: %lu", comp->priv->stripe_size);
-            if (comp->priv->n_columns > 0)
-                g_message("    Columns: %u", comp->priv->n_columns);
+            if (comp->stripe_size > 0)
+                g_message("    Stripe Size: %lu", comp->stripe_size);
+            if (comp->n_columns > 0)
+                g_message("    Columns: %u", comp->n_columns);
 
-            for (int k = 0; k < comp->priv->n_parts; k++) {
-                const PartLDMPartition * const part =
-                    g_array_index(comp->priv->parts, PartLDMPartition *, k);
+            for (int k = 0; k < comp->n_parts; k++) {
+                const PartLDMPartition * const part_o =
+                    g_array_index(comp->parts, PartLDMPartition *, k);
+                const PartLDMPartitionPrivate * const part = part_o->priv;
 
-                g_message("    Partition: %s", part->priv->name);
-                g_message("      ID: %u", part->priv->id);
-                g_message("      Start: %lu", part->priv->start);
-                g_message("      Size: %lu", part->priv->size);
-                g_message("      Volume Offset: %lu", part->priv->vol_offset);
-                g_message("      Component Index: %u", part->priv->index);
+                g_message("    Partition: %s", part->name);
+                g_message("      ID: %u", part->id);
+                g_message("      Start: %lu", part->start);
+                g_message("      Size: %lu", part->size);
+                g_message("      Volume Offset: %lu", part->vol_offset);
+                g_message("      Component Index: %u", part->index);
 
-                const PartLDMDiskPrivate * const disk = part->priv->disk->priv;
+                const PartLDMDiskPrivate * const disk = part->disk->priv;
                 uuid_unparse(disk->guid, guid_str);
                 g_message("      Disk: %s", disk->name);
                 g_message("        ID: %u", disk->id);
