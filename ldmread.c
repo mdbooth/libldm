@@ -35,12 +35,15 @@ int main(int argc, const char *argv[])
 
         {
             gchar *guid;
+            gchar *name;
 
-            g_object_get(dg, "guid", &guid, NULL);
+            g_object_get(dg, "guid", &guid, "name", &name, NULL);
 
-            printf("Disk Group: %s\n", guid);
+            printf("Disk Group: %s\n", name);
+            printf("  GUID: %s\n", guid);
 
             g_free(guid);
+            g_free(name);
         }
 
         GArray *vols = part_ldm_disk_group_get_volumes(dg, &err);

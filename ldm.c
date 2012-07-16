@@ -229,6 +229,8 @@ part_ldm_class_init(PartLDMClass * const klass)
 struct _PartLDMDiskGroupPrivate
 {
     uuid_t guid;
+    uint32_t id;
+    char *name;
 
     uint64_t sequence;
 
@@ -247,7 +249,8 @@ G_DEFINE_TYPE(PartLDMDiskGroup, part_ldm_disk_group, G_TYPE_OBJECT)
 
 enum {
     PROP_PART_LDM_DISK_GROUP_PROP0,
-    PROP_PART_LDM_DISK_GROUP_GUID
+    PROP_PART_LDM_DISK_GROUP_GUID,
+    PROP_PART_LDM_DISK_GROUP_NAME
 };
 
 static void
@@ -266,6 +269,9 @@ part_ldm_disk_group_get_property(GObject * const o, const guint property_id,
         }
         break;
 
+    case PROP_PART_LDM_DISK_GROUP_NAME:
+        g_value_set_string(value, priv->name); break;
+
     default:
         G_OBJECT_WARN_INVALID_PROPERTY_ID(o, property_id, pspec);
     }
@@ -275,6 +281,8 @@ static void
 part_ldm_disk_group_finalize(GObject * const object)
 {
     PartLDMDiskGroup *dg = PART_LDM_DISK_GROUP(object);
+
+    g_free(dg->priv->name);
 
     if (dg->priv->vols) {
         g_array_unref(dg->priv->vols); dg->priv->vols = NULL;
@@ -310,6 +318,20 @@ part_ldm_disk_group_class_init(PartLDMDiskGroupClass * const klass)
         g_param_spec_string(
             "guid", "GUID",
             "A string representation of the disk group's GUID",
+            NULL, G_PARAM_READABLE | G_PARAM_STATIC_STRINGS
+        )
+    );
+
+    /**
+     * PartLDMDiskGroup:name:
+     *
+     * The name of the disk group.
+     */
+    g_object_class_install_property(
+        object_class,
+        PROP_PART_LDM_DISK_GROUP_NAME,
+        g_param_spec_string(
+            "name", "Name", "The name of the disk group",
             NULL, G_PARAM_READABLE | G_PARAM_STATIC_STRINGS
         )
     );
@@ -1565,6 +1587,26 @@ _parse_vblk_disk(const guint8 revision, const guint16 flags,
     return TRUE;
 }
 
+static gboolean
+_parse_vblk_disk_group(const guint8 revision, const guint16 flags,
+                       const guint8 *vblk, PartLDMDiskGroupPrivate * const dg,
+                       GError ** const err)
+{
+    if (revision != 3 && revision != 4) {
+        g_set_error(err, LDM_ERROR, PART_LDM_ERROR_NOTSUPPORTED,
+                    "Unsupported disk VBLK revision %hhu", revision);
+        return FALSE;
+    }
+
+    if (!_parse_var_int32(&vblk, &dg->id, "id", "disk group", err))
+        return FALSE;
+    dg->name = _parse_var_string(&vblk);
+
+    /* No need to parse rest of structure */
+
+    return TRUE;
+}
+
 struct _spanned_rec {
     uint32_t record_id;
     uint16_t entries_total;
@@ -1631,8 +1673,11 @@ _parse_vblk(const void * data, PartLDMDiskGroupPrivate * const dg,
     }
 
     case 0x05:
-        /* We don't need any addition about the disk group */
+    {
+        if (!_parse_vblk_disk_group(revision, rec_head->flags, data, dg, err))
+            return FALSE;
         break;
+    }
 
     default:
         g_set_error(err, LDM_ERROR, PART_LDM_ERROR_NOTSUPPORTED,
@@ -1992,6 +2037,8 @@ part_ldm_disk_group_dump(PartLDMDiskGroup * const o)
     uuid_unparse(dg->guid, guid_str);
 
     g_message("GUID: %s", guid_str);
+    g_message("ID: %u", dg->id);
+    g_message("Name: %s", dg->name);
     g_message("Disks: %u", dg->n_disks);
     g_message("Components: %u", dg->n_comps);
     g_message("Partitions: %u", dg->n_parts);
