@@ -854,6 +854,11 @@ struct _PartLDMDiskPrivate
     guint32 id;
     gchar *name;
 
+    guint64 data_start;
+    guint64 data_size;
+    guint64 metadata_start;
+    guint64 metadata_size;
+
     uuid_t guid;
     gchar *device; // NULL until device is found
 };
@@ -864,7 +869,11 @@ enum {
     PROP_PART_LDM_DISK_PROP0,
     PROP_PART_LDM_DISK_NAME,
     PROP_PART_LDM_DISK_GUID,
-    PROP_PART_LDM_DISK_DEVICE
+    PROP_PART_LDM_DISK_DEVICE,
+    PROP_PART_LDM_DISK_DATA_START,
+    PROP_PART_LDM_DISK_DATA_SIZE,
+    PROP_PART_LDM_DISK_METADATA_START,
+    PROP_PART_LDM_DISK_METADATA_SIZE
 };
 
 static void
@@ -888,6 +897,18 @@ part_ldm_disk_get_property(GObject * const o, const guint property_id,
 
     case PROP_PART_LDM_DISK_DEVICE:
         g_value_set_string(value, priv->device); break;
+
+    case PROP_PART_LDM_DISK_DATA_START:
+        g_value_set_uint64(value, priv->data_start); break;
+
+    case PROP_PART_LDM_DISK_DATA_SIZE:
+        g_value_set_uint64(value, priv->data_size); break;
+
+    case PROP_PART_LDM_DISK_METADATA_START:
+        g_value_set_uint64(value, priv->metadata_start); break;
+
+    case PROP_PART_LDM_DISK_METADATA_SIZE:
+        g_value_set_uint64(value, priv->metadata_size); break;
 
     default:
         G_OBJECT_WARN_INVALID_PROPERTY_ID(o, property_id, pspec);
@@ -954,6 +975,70 @@ part_ldm_disk_class_init(PartLDMDiskClass * const klass)
             "device", "Device", "The underlying device of this disk. This may "
             "be NULL if the disk is missing from the disk group",
             NULL, G_PARAM_READABLE | G_PARAM_STATIC_STRINGS
+        )
+    );
+
+    /**
+     * PartLDMDisk:data-start:
+     *
+     * The start sector of the data area of the disk.
+     */
+    g_object_class_install_property(
+        object_class,
+        PROP_PART_LDM_DISK_DATA_START,
+        g_param_spec_uint64(
+            "data-start", "Data Start", "The start sector of the data area of "
+            "the disk",
+            0, G_MAXUINT64, 0,
+            G_PARAM_READABLE | G_PARAM_STATIC_STRINGS
+        )
+    );
+
+    /**
+     * PartLDMDisk:data-size:
+     *
+     * The size, in sectors, of the data area of the disk.
+     */
+    g_object_class_install_property(
+        object_class,
+        PROP_PART_LDM_DISK_DATA_SIZE,
+        g_param_spec_uint64(
+            "data-size", "Data Size", "The size, in sectors, of the data area "
+            "of the disk",
+            0, G_MAXUINT64, 0,
+            G_PARAM_READABLE | G_PARAM_STATIC_STRINGS
+        )
+    );
+
+    /**
+     * PartLDMDisk:metadata-start:
+     *
+     * The start sector of the metadata area of the disk.
+     */
+    g_object_class_install_property(
+        object_class,
+        PROP_PART_LDM_DISK_METADATA_START,
+        g_param_spec_uint64(
+            "metadata-start", "Metadata Start", "The start sector of the "
+            "metadata area of the disk",
+            0, G_MAXUINT64, 0,
+            G_PARAM_READABLE | G_PARAM_STATIC_STRINGS
+        )
+    );
+
+    /**
+     * PartLDMDisk:metadata-size:
+     *
+     * The size, in sectors, of the metadata area of the disk.
+     */
+    g_object_class_install_property(
+        object_class,
+        PROP_PART_LDM_DISK_METADATA_SIZE,
+        g_param_spec_uint64(
+            "metadata-size", "Metadata Size", "The size, in sectors, of the "
+            "metadata area of the disk",
+            0, G_MAXUINT64, 0,
+            G_PARAM_READABLE | G_PARAM_STATIC_STRINGS
         )
     );
 }
@@ -1860,11 +1945,19 @@ part_ldm_add(PartLDM *o, const gchar * const path, GError ** const err)
         }
     }
 
+    /* Find the disk VBLK for the current disk and add additional information
+     * from PRIVHEAD */
     for (int i = 0; i < dg->priv->n_disks; i++) {
-        PartLDMDisk * const disk =
+        PartLDMDisk * const disk_o =
                 g_array_index(dg->priv->disks, PartLDMDisk *, i);
-        if (uuid_compare(disk_guid, disk->priv->guid) == 0) {
-            disk->priv->device = g_strdup(path);
+        PartLDMDiskPrivate * const disk = disk_o->priv;
+
+        if (uuid_compare(disk_guid, disk->guid) == 0) {
+            disk->device = g_strdup(path);
+            disk->data_start = be64toh(privhead.logical_disk_start);
+            disk->data_size = be64toh(privhead.logical_disk_size);
+            disk->metadata_start = be64toh(privhead.ldm_config_start);
+            disk->metadata_size = be64toh(privhead.ldm_config_size);
             break;
         }
     }
@@ -1958,11 +2051,16 @@ part_ldm_disk_group_dump(PartLDMDiskGroup * const o)
                 g_message("      Volume Offset: %lu", part->priv->vol_offset);
                 g_message("      Component Index: %u", part->priv->index);
 
-                const PartLDMDisk * const disk = part->priv->disk;
-                uuid_unparse(disk->priv->guid, guid_str);
-                g_message("      Disk: %s", disk->priv->device);
-                g_message("        ID: %u", disk->priv->id);
+                const PartLDMDiskPrivate * const disk = part->priv->disk->priv;
+                uuid_unparse(disk->guid, guid_str);
+                g_message("      Disk: %s", disk->name);
+                g_message("        ID: %u", disk->id);
                 g_message("        GUID: %s", guid_str);
+                g_message("        Device: %s", disk->device);
+                g_message("        Data Start: %lu", disk->data_start);
+                g_message("        Data Size: %lu", disk->data_size);
+                g_message("        Metadata Start: %lu", disk->metadata_start);
+                g_message("        Metadata Size: %lu", disk->metadata_size);
             }
         }
     }

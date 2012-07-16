@@ -131,13 +131,27 @@ int main(int argc, const char *argv[])
                         gchar *name;
                         gchar *guid;
                         gchar *device;
+                        guint64 data_start;
+                        guint64 data_size;
+                        guint64 metadata_start;
+                        guint64 metadata_size;
 
                         g_object_get(disk, "name", &name, "guid", &guid,
-                                           "device", &device, NULL);
+                                           "device", &device,
+                                           "data-start", &data_start,
+                                           "data-size", &data_size,
+                                           "metadata-start", &metadata_start,
+                                           "metadata-size", &metadata_size,
+                                           NULL);
 
                         printf("        Disk: %s\n", name);
                         printf("          GUID:   %s\n", guid);
                         printf("          Device: %s\n", device);
+                        printf("          Data Start: %lu\n", data_start);
+                        printf("          Data Size: %lu\n", data_size);
+                        printf("          Metadata Start: %lu\n",
+                               metadata_start);
+                        printf("          Metadata Size: %lu\n", metadata_size);
 
                         g_free(name);
                         g_free(guid);
