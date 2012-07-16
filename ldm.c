@@ -522,11 +522,11 @@ part_ldm_component_type_get_type(void)
     if (etype == 0) {
         static const GEnumValue values[] = {
             { PART_LDM_COMPONENT_TYPE_STRIPED,
-              "PART_LDM_VOLUME_TYPE_STRIPED", "striped" },
+              "PART_LDM_COMPONENT_TYPE_STRIPED", "striped" },
             { PART_LDM_COMPONENT_TYPE_SPANNED,
-              "PART_LDM_VOLUME_TYPE_SPANNED", "spanned" },
+              "PART_LDM_COMPONENT_TYPE_SPANNED", "spanned" },
             { PART_LDM_COMPONENT_TYPE_RAID,
-              "PART_LDM_VOLUME_TYPE_RAID", "raid" }
+              "PART_LDM_COMPONENT_TYPE_RAID", "raid" }
         };
         etype = g_enum_register_static("PartLDMComponentType", values);
     }
