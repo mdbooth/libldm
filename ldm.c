@@ -1915,8 +1915,9 @@ part_ldm_disk_group_dump(PartLDMDiskGroup * const o)
         case PART_LDM_VOLUME_TYPE_GEN:          vol_type = "gen"; break;
         case PART_LDM_VOLUME_TYPE_RAID5:        vol_type = "raid5"; break;
         default:
-            /* Should be impossible. Something has gone wrong. */
-            abort();
+            /* We checked this value when it was set, and it isn't possible to
+             * modify it. This should be impossible. */
+            g_error("Unexpected volume type: %u", vol->priv->type);
         }
         g_message("  Type: %s", vol_type);
         g_message("  Size: %lu", vol->priv->size);
