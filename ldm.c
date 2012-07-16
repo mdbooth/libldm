@@ -473,7 +473,7 @@ part_ldm_volume_class_init(PartLDMVolumeClass * const klass)
     );
 
     /**
-     * PartLDMVolume:part_type:
+     * PartLDMVolume:part-type:
      *
      * A 1-byte type descriptor of the volume's contents. This descriptor has
      * the same meaning as for an MBR partition.
@@ -637,7 +637,7 @@ part_ldm_component_class_init(PartLDMComponentClass * const klass)
     );
 
     /**
-     * PartLDMComponent:stripe_size:
+     * PartLDMComponent:stripe-size:
      *
      * The stripe size of the component in sectors, if relevant. This will be
      * zero if the component does not have a stripe size.
@@ -655,7 +655,7 @@ part_ldm_component_class_init(PartLDMComponentClass * const klass)
     );
 
     /**
-     * PartLDMComponent:n_columns:
+     * PartLDMComponent:n-columns:
      *
      * The number of columns the component has, if relevant. This will be zero
      * if the component does not have columns.
@@ -788,7 +788,7 @@ part_ldm_partition_class_init(PartLDMPartitionClass * const klass)
     );
 
     /**
-     * PartLDMPartition:volume_offset:
+     * PartLDMPartition:vol-offset:
      *
      * The offset of the start of this partition from the start of the volume in
      * sectors.
