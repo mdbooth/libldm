@@ -1640,7 +1640,7 @@ _parse_vblks(const void * const config, const gchar * const path,
         else {
             if (!_parse_vblk(vblk, dg, path, offset, err)) goto error;
         }
-        
+
         vblk += vblk_data_size;
     }
 
