@@ -917,6 +917,9 @@ struct _PartLDMDiskPrivate
 
     uuid_t guid;
     gchar *device; // NULL until device is found
+
+    /* We don't keep a strong reference here to avoid a circular reference. */
+    GWeakRef dg;
 };
 
 G_DEFINE_TYPE(PartLDMDisk, part_ldm_disk, G_TYPE_OBJECT)
@@ -972,6 +975,15 @@ part_ldm_disk_get_property(GObject * const o, const guint property_id,
 }
 
 static void
+part_ldm_disk_dispose(GObject * const object)
+{
+    PartLDMDisk * const disk_o = PART_LDM_DISK(object);
+    PartLDMDiskPrivate * const disk = disk_o->priv;
+
+    g_weak_ref_set(&disk->dg, NULL);
+}
+
+static void
 part_ldm_disk_finalize(GObject * const object)
 {
     PartLDMDisk * const disk_o = PART_LDM_DISK(object);
@@ -985,6 +997,7 @@ static void
 part_ldm_disk_class_init(PartLDMDiskClass * const klass)
 {
     GObjectClass *object_class = G_OBJECT_CLASS(klass);
+    object_class->dispose = part_ldm_disk_dispose;
     object_class->finalize = part_ldm_disk_finalize;
     object_class->get_property = part_ldm_disk_get_property;
 
@@ -1650,10 +1663,12 @@ struct _spanned_rec {
 };
 
 static gboolean
-_parse_vblk(const void * data, PartLDMDiskGroupPrivate * const dg,
+_parse_vblk(const void * data, PartLDMDiskGroup * const dg_o,
             const gchar * const path, const int offset,
             GError ** const err)
 {
+    PartLDMDiskGroupPrivate * const dg = dg_o->priv;
+
     const struct _ldm_vblk_rec_head * const rec_head = data;
 
     const guint8 type = rec_head->type & 0x0F;
@@ -1701,6 +1716,7 @@ _parse_vblk(const void * data, PartLDMDiskGroupPrivate * const dg,
         PartLDMDisk * const disk =
             PART_LDM_DISK(g_object_new(PART_TYPE_LDM_DISK, NULL));
         g_array_append_val(dg->disks, disk);
+        g_weak_ref_set(&disk->priv->dg, dg_o);
         if (!_parse_vblk_disk(revision, rec_head->flags, data, disk->priv, err))
             return FALSE;
         break;
@@ -1726,8 +1742,9 @@ _parse_vblk(const void * data, PartLDMDiskGroupPrivate * const dg,
 static gboolean
 _parse_vblks(const void * const config, const gchar * const path,
           const struct _ldm_vmdb * const vmdb,
-          PartLDMDiskGroupPrivate * const dg, GError ** const err)
+          PartLDMDiskGroup * const dg_o, GError ** const err)
 {
+    PartLDMDiskGroupPrivate * const dg = dg_o->priv;
     GArray *spanned = g_array_new(FALSE, FALSE, sizeof(gpointer));
     g_array_set_clear_func(spanned, _free_pointer);
 
@@ -1805,7 +1822,7 @@ _parse_vblks(const void * const config, const gchar * const path,
         }
 
         else {
-            if (!_parse_vblk(vblk, dg, path, offset, err)) goto error;
+            if (!_parse_vblk(vblk, dg_o, path, offset, err)) goto error;
         }
 
         vblk += vblk_data_size;
@@ -1823,7 +1840,7 @@ _parse_vblks(const void * const config, const gchar * const path,
             goto error;
         }
 
-        if (!_parse_vblk(rec->data, dg, path, rec->offset, err)) goto error;
+        if (!_parse_vblk(rec->data, dg_o, path, rec->offset, err)) goto error;
     }
 
     g_array_unref(spanned); spanned = NULL;
@@ -2011,7 +2028,7 @@ part_ldm_add(PartLDM *o, const gchar * const path, GError ** const err)
 
         g_debug("Found new disk group: %s", dg_guid_str);
 
-        if (!_parse_vblks(config, path, vmdb, dg->priv, err)) {
+        if (!_parse_vblks(config, path, vmdb, dg, err)) {
             g_object_unref(dg); dg = NULL;
             goto error;
         }
