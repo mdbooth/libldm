@@ -198,11 +198,13 @@ static void _free_pointer(gpointer const data)
 }
 
 static void
-part_ldm_finalize(GObject * const object)
+part_ldm_dispose(GObject * const object)
 {
     PartLDM *ldm = PART_LDM(object);
 
-    g_array_unref(ldm->priv->disk_groups); ldm->priv->disk_groups = NULL;
+    if (ldm->priv->disk_groups) {
+        g_array_unref(ldm->priv->disk_groups); ldm->priv->disk_groups = NULL;
+    }
 }
 
 static void
@@ -216,7 +218,7 @@ static void
 part_ldm_class_init(PartLDMClass * const klass)
 {
     GObjectClass *object_class = G_OBJECT_CLASS(klass);
-    object_class->finalize = part_ldm_finalize;
+    object_class->dispose = part_ldm_dispose;
 
     g_type_class_add_private(klass, sizeof(PartLDMPrivate));
 }
@@ -278,11 +280,9 @@ part_ldm_disk_group_get_property(GObject * const o, const guint property_id,
 }
 
 static void
-part_ldm_disk_group_finalize(GObject * const object)
+part_ldm_disk_group_dispose(GObject * const object)
 {
     PartLDMDiskGroup *dg = PART_LDM_DISK_GROUP(object);
-
-    g_free(dg->priv->name);
 
     if (dg->priv->vols) {
         g_array_unref(dg->priv->vols); dg->priv->vols = NULL;
@@ -291,7 +291,7 @@ part_ldm_disk_group_finalize(GObject * const object)
         g_array_unref(dg->priv->comps); dg->priv->comps = NULL;
     }
     if (dg->priv->parts) {
-        g_array_unref(dg->priv->parts); dg->priv->vols = NULL;
+        g_array_unref(dg->priv->parts); dg->priv->parts = NULL;
     }
     if (dg->priv->disks) {
         g_array_unref(dg->priv->disks); dg->priv->disks = NULL;
@@ -299,9 +299,18 @@ part_ldm_disk_group_finalize(GObject * const object)
 }
 
 static void
+part_ldm_disk_group_finalize(GObject * const object)
+{
+    PartLDMDiskGroup *dg = PART_LDM_DISK_GROUP(object);
+
+    g_free(dg->priv->name); dg->priv->name = NULL;
+}
+
+static void
 part_ldm_disk_group_class_init(PartLDMDiskGroupClass * const klass)
 {
     GObjectClass *object_class = G_OBJECT_CLASS(klass);
+    object_class->dispose = part_ldm_disk_group_dispose;
     object_class->finalize = part_ldm_disk_group_finalize;
     object_class->get_property = part_ldm_disk_group_get_property;
 
@@ -427,24 +436,32 @@ part_ldm_volume_get_property(GObject * const o, const guint property_id,
 }
 
 static void
+part_ldm_volume_dispose(GObject * const object)
+{
+
+    PartLDMVolume * const vol_o = PART_LDM_VOLUME(object);
+    PartLDMVolumePrivate * const vol = vol_o->priv;
+
+    if (vol->comps) { g_array_unref(vol->comps); vol->comps = NULL; }
+}
+
+static void
 part_ldm_volume_finalize(GObject * const object)
 {
-    PartLDMVolume * const vol = PART_LDM_VOLUME(object);
-    PartLDMVolumePrivate * const priv = vol->priv;
+    PartLDMVolume * const vol_o = PART_LDM_VOLUME(object);
+    PartLDMVolumePrivate * const vol = vol_o->priv;
 
-    g_free(priv->name); priv->name = NULL;
-
-    if (priv->comps) { g_array_unref(priv->comps); priv->comps = NULL; }
-
-    g_free(priv->id1); priv->id1 = NULL;
-    g_free(priv->id2); priv->id2 = NULL;
-    g_free(priv->hint); priv->hint = NULL;
+    g_free(vol->name); vol->name = NULL;
+    g_free(vol->id1); vol->id1 = NULL;
+    g_free(vol->id2); vol->id2 = NULL;
+    g_free(vol->hint); vol->hint = NULL;
 }
 
 static void
 part_ldm_volume_class_init(PartLDMVolumeClass * const klass)
 {
     GObjectClass *object_class = G_OBJECT_CLASS(klass);
+    object_class->dispose = part_ldm_volume_dispose;
     object_class->finalize = part_ldm_volume_finalize;
     object_class->get_property = part_ldm_volume_get_property;
 
@@ -610,20 +627,28 @@ part_ldm_component_get_property(GObject * const o, const guint property_id,
 }
 
 static void
+part_ldm_component_dispose(GObject * const object)
+{
+    PartLDMComponent * const comp_o = PART_LDM_COMPONENT(object);
+    PartLDMComponentPrivate * const comp = comp_o->priv;
+
+    if (comp->parts) { g_array_unref(comp->parts); comp->parts = NULL; }
+}
+
+static void
 part_ldm_component_finalize(GObject * const object)
 {
-    PartLDMComponent * const comp = PART_LDM_COMPONENT(object);
-    PartLDMComponentPrivate * const priv = comp->priv;
+    PartLDMComponent * const comp_o = PART_LDM_COMPONENT(object);
+    PartLDMComponentPrivate * const comp = comp_o->priv;
 
-    g_free(priv->name); priv->name = NULL;
-
-    if (priv->parts) { g_array_unref(priv->parts); priv->parts = NULL; }
+    g_free(comp->name); comp->name = NULL;
 }
 
 static void
 part_ldm_component_class_init(PartLDMComponentClass * const klass)
 {
     GObjectClass *object_class = G_OBJECT_CLASS(klass);
+    object_class->dispose = part_ldm_component_dispose;
     object_class->finalize = part_ldm_component_finalize;
     object_class->get_property = part_ldm_component_get_property;
 
@@ -762,19 +787,28 @@ part_ldm_partition_get_property(GObject * const o, const guint property_id,
 }
 
 static void
+part_ldm_partition_dispose(GObject * const object)
+{
+    PartLDMPartition * const part_o = PART_LDM_PARTITION(object);
+    PartLDMPartitionPrivate * const part = part_o->priv;
+
+    if (part->disk) { g_object_unref(part->disk); part->disk = NULL; }
+}
+
+static void
 part_ldm_partition_finalize(GObject * const object)
 {
-    PartLDMPartition * const part = PART_LDM_PARTITION(object);
-    PartLDMPartitionPrivate * const priv = part->priv;
+    PartLDMPartition * const part_o = PART_LDM_PARTITION(object);
+    PartLDMPartitionPrivate * const part = part_o->priv;
 
-    g_free(priv->name); priv->name = NULL;
-    g_object_unref(priv->disk); priv->disk = NULL;
+    g_free(part->name); part->name = NULL;
 }
 
 static void
 part_ldm_partition_class_init(PartLDMPartitionClass * const klass)
 {
     GObjectClass *object_class = G_OBJECT_CLASS(klass);
+    object_class->dispose = part_ldm_partition_dispose;
     object_class->finalize = part_ldm_partition_finalize;
     object_class->get_property = part_ldm_partition_get_property;
 
@@ -940,11 +974,11 @@ part_ldm_disk_get_property(GObject * const o, const guint property_id,
 static void
 part_ldm_disk_finalize(GObject * const object)
 {
-    PartLDMDisk * const disk = PART_LDM_DISK(object);
-    PartLDMDiskPrivate * const priv = disk->priv;
+    PartLDMDisk * const disk_o = PART_LDM_DISK(object);
+    PartLDMDiskPrivate * const disk = disk_o->priv;
 
-    g_free(priv->name); priv->name = NULL;
-    g_free(priv->device); priv->device = NULL;
+    g_free(disk->name); disk->name = NULL;
+    g_free(disk->device); disk->device = NULL;
 }
 
 static void
@@ -1919,6 +1953,12 @@ part_ldm_add(PartLDM *o, const gchar * const path, GError ** const err)
 {
     GArray *disk_groups = o->priv->disk_groups;
 
+    /* The GObject documentation states quite clearly that method calls on an
+     * object which has been disposed should *not* result in an error. Seems
+     * weird, but...
+     */
+    if (!disk_groups) return TRUE;
+
     void *config = NULL;
 
     const int fd = open(path, O_RDONLY);
@@ -2119,21 +2159,21 @@ part_ldm_disk_group_dump(PartLDMDiskGroup * const o)
 GArray *
 part_ldm_get_disk_groups(PartLDM * const o, GError ** const err)
 {
-    g_array_ref(o->priv->disk_groups);
+    if (o->priv->disk_groups) g_array_ref(o->priv->disk_groups);
     return o->priv->disk_groups;
 }
 
 GArray *
 part_ldm_disk_group_get_volumes(PartLDMDiskGroup * const o, GError ** const err)
 {
-    g_array_ref(o->priv->vols);
+    if (o->priv->vols) g_array_ref(o->priv->vols);
     return o->priv->vols;
 }
 
 GArray *
 part_ldm_volume_get_components(PartLDMVolume * const o, GError ** const err)
 {
-    g_array_ref(o->priv->comps);
+    if (o->priv->comps) g_array_ref(o->priv->comps);
     return o->priv->comps;
 }
 
@@ -2141,13 +2181,13 @@ GArray *
 part_ldm_component_get_partitions(PartLDMComponent * const o,
                                   GError ** const err)
 {
-    g_array_ref(o->priv->parts);
+    if (o->priv->parts) g_array_ref(o->priv->parts);
     return o->priv->parts;
 }
 
 PartLDMDisk *
 part_ldm_partition_get_disk(PartLDMPartition * const o, GError ** const err)
 {
-    g_object_ref(o->priv->disk);
+    if (o->priv->disk) g_object_ref(o->priv->disk);
     return o->priv->disk;
 }
