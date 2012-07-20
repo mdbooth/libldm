@@ -1,9 +1,11 @@
 #include <endian.h>
 #include <fcntl.h>
+#include <linux/fs.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <sys/ioctl.h>
 #include <sys/mman.h>
 #include <sys/stat.h>
 #include <unistd.h>
@@ -1160,7 +1162,6 @@ _read_config(const int fd, const gchar * const path,
              void ** const config, GError ** const err)
 {
     /* Sanity check ldm_config_start and ldm_config_size */
-    /* XXX: Fix size detection for block devices */
     struct stat stat;
     if (fstat(fd, &stat) == -1) {
         g_set_error(err, LDM_ERROR, PART_LDM_ERROR_IO,
@@ -1168,18 +1169,27 @@ _read_config(const int fd, const gchar * const path,
         return FALSE;
     }
 
+    uint64_t size = stat.st_size;
+    if (S_ISBLK(stat.st_mode)) {
+        if (ioctl(fd, BLKGETSIZE64, &size) == -1) {
+            g_set_error(err, LDM_ERROR, PART_LDM_ERROR_IO,
+                        "Unable to get block device size for %s: %m", path);
+            return FALSE;
+        }
+    }
+
     const uint64_t config_start =
         be64toh(privhead->ldm_config_start) * SECTOR_SIZE;
     const uint64_t config_size =
         be64toh(privhead->ldm_config_size) * SECTOR_SIZE;
 
-    if (config_start > stat.st_size) {
+    if (config_start > size) {
         g_set_error(err, LDM_ERROR, PART_LDM_ERROR_INVALID,
                     "LDM config start (%lX) is outside file in %s",
                     config_start, path);
         return FALSE;
     }
-    if (config_start + config_size > stat.st_size) {
+    if (config_start + config_size > size) {
         g_set_error(err, LDM_ERROR, PART_LDM_ERROR_INVALID,
                     "LDM config end (%lX) is outside file in %s",
                     config_start + config_size, path);
