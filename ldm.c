@@ -184,7 +184,9 @@ part_ldm_error_get_type(void)
             { PART_LDM_ERROR_INCONSISTENT, "PART_LDM_ERROR_INCONSISTENT",
                                            "inconsistent" },
             { PART_LDM_ERROR_NOTSUPPORTED, "PART_LDM_ERROR_NOTSUPPORTED",
-                                           "notsupported" }
+                                           "notsupported" },
+            { PART_LDM_ERROR_MISSING_DISK, "PART_LDM_ERROR_MISSING_DISK",
+                                           "missing-disk" }
         };
         etype = g_enum_register_static("PartLDMError", values);
     }
@@ -1115,6 +1117,101 @@ part_ldm_disk_init(PartLDMDisk * const o)
     bzero(o->priv, sizeof(*o->priv));
 }
 
+/* PartLDMDMTable */
+
+#define PART_LDM_DM_TABLE_GET_PRIVATE(obj) (G_TYPE_INSTANCE_GET_PRIVATE \
+        ((obj), PART_TYPE_LDM_DM_TABLE, PartLDMDMTablePrivate))
+
+struct _PartLDMDMTablePrivate
+{
+    GString * name;
+    GString * table;
+};
+
+G_DEFINE_TYPE(PartLDMDMTable, part_ldm_dm_table, G_TYPE_OBJECT)
+
+enum {
+    PROP_PART_LDM_DM_TABLE_PROP0,
+    PROP_PART_LDM_DM_TABLE_NAME,
+    PROP_PART_LDM_DM_TABLE_TABLE
+};
+
+static void
+part_ldm_dm_table_get_property(GObject * const o, const guint property_id,
+                               GValue * const value, GParamSpec * const pspec)
+{
+    const PartLDMDMTable * const table_o = PART_LDM_DM_TABLE(o);
+    const PartLDMDMTablePrivate * const table = table_o->priv;
+
+    switch (property_id) {
+    case PROP_PART_LDM_DM_TABLE_NAME:
+        g_value_set_string(value, table->name->str); break;
+
+    case PROP_PART_LDM_DM_TABLE_TABLE:
+        g_value_set_string(value, table->table->str); break;
+
+    default:
+        G_OBJECT_WARN_INVALID_PROPERTY_ID(o, property_id, pspec);
+    }
+}
+
+static void
+part_ldm_dm_table_finalize(GObject * const object)
+{
+    PartLDMDMTable * const table_o = PART_LDM_DM_TABLE(object);
+    PartLDMDMTablePrivate * const table = table_o->priv;
+
+    if (table->name) { g_string_free(table->name, TRUE); table->name = NULL; }
+    if (table->table) {
+        g_string_free(table->table, TRUE); table->table = NULL;
+    }
+}
+
+static void
+part_ldm_dm_table_class_init(PartLDMDMTableClass * const klass)
+{
+    GObjectClass *object_class = G_OBJECT_CLASS(klass);
+    object_class->finalize = part_ldm_dm_table_finalize;
+    object_class->get_property = part_ldm_dm_table_get_property;
+
+    g_type_class_add_private(klass, sizeof(PartLDMDiskPrivate));
+
+    /**
+     * PartLDMDMTable:name:
+     *
+     * The name of the device the table describes.
+     */
+    g_object_class_install_property(
+        object_class,
+        PROP_PART_LDM_DM_TABLE_NAME,
+        g_param_spec_string(
+            "name", "Name", "The name of the device the table describes",
+            NULL, G_PARAM_READABLE | G_PARAM_STATIC_STRINGS
+        )
+    );
+
+    /**
+     * PartLDMDMTable:table:
+     *
+     * The table describing the device mapper device.
+     */
+    g_object_class_install_property(
+        object_class,
+        PROP_PART_LDM_DM_TABLE_TABLE,
+        g_param_spec_string(
+            "table", "Table", "The table describing the device mapper device",
+            NULL, G_PARAM_READABLE | G_PARAM_STATIC_STRINGS
+        )
+    );
+}
+
+static void
+part_ldm_dm_table_init(PartLDMDMTable * const o)
+{
+    o->priv = PART_LDM_DM_TABLE_GET_PRIVATE(o);
+    bzero(o->priv, sizeof(*o->priv));
+}
+
 #define SECTOR_SIZE (0x200)
 
 static gboolean
@@ -1740,6 +1837,17 @@ _parse_vblk(const void * data, PartLDMDiskGroup * const dg_o,
     return TRUE;
 }
 
+gint
+_cmp_component_parts(gconstpointer a, gconstpointer b)
+{
+    const PartLDMPartition * const ao = PART_LDM_PARTITION(*(PartLDMPartition **)a);
+    const PartLDMPartition * const bo = PART_LDM_PARTITION(*(PartLDMPartition **)b);
+
+    if (ao->priv->index < bo->priv->index) return -1;
+    if (ao->priv->index > bo->priv->index) return 1;
+    return 0;
+}
+
 static gboolean
 _parse_vblks(const void * const config, const gchar * const path,
           const struct _ldm_vmdb * const vmdb,
@@ -2224,4 +2332,328 @@ part_ldm_partition_get_disk(PartLDMPartition * const o, GError ** const err)
 {
     if (o->priv->disk) g_object_ref(o->priv->disk);
     return o->priv->disk;
+}
+
+static PartLDMDMTable *
+_generate_dm_table_part(const PartLDMPartitionPrivate * const part,
+                        GError ** const err)
+{
+    const PartLDMDiskPrivate * const disk = part->disk->priv;
+
+    if (!disk->device) {
+        g_set_error(err, LDM_ERROR, PART_LDM_ERROR_MISSING_DISK,
+                    "Disk %s required by partition %s is missing",
+                    disk->name, part->name);
+        return NULL;
+    }
+
+    PartLDMDMTable * const table_o = g_object_new(PART_TYPE_LDM_DM_TABLE, NULL);
+    PartLDMDMTablePrivate * const table = table_o->priv;
+
+    table->name = g_string_new("");
+    table->table = g_string_new("");
+
+    /* Ensure we sanitise table names */
+    char * dgname_esc =
+        g_uri_escape_string(disk->dgname,
+                            G_URI_RESERVED_CHARS_ALLOWED_IN_PATH_ELEMENT,
+                            FALSE);
+    char * partname_esc =
+        g_uri_escape_string(part->name,
+                            G_URI_RESERVED_CHARS_ALLOWED_IN_PATH_ELEMENT,
+                            FALSE);
+
+    g_string_printf(table->name, "ldm_%s_%s", dgname_esc, partname_esc);
+
+    g_free(dgname_esc);
+    g_free(partname_esc);
+
+    g_string_printf(table->table, "0 %lu linear %s %lu\n",
+                                  part->size, disk->device,
+                                  disk->data_start + part->start);
+
+    return table_o;
+}
+
+static gboolean
+_generate_dm_tables_mirrored(GArray * const ret,
+                             const PartLDMVolumePrivate * const vol,
+                             GError ** const err)
+{
+    PartLDMDMTable * const mirror_o =
+        g_object_new(PART_TYPE_LDM_DM_TABLE, NULL);
+    PartLDMDMTablePrivate * const mirror = mirror_o->priv;
+    g_array_append_val(ret, mirror_o);
+
+    mirror->name = g_string_new("");
+    g_string_printf(mirror->name, "ldm_%s_%s", vol->dgname, vol->name);
+
+    mirror->table = g_string_new("");
+    g_string_printf(mirror->table, "0 %lu raid raid1 1 128 %u",
+                                  vol->size, vol->comps->len);
+
+    int found = 0;
+    for (int i = 0; i < vol->comps->len; i++) {
+        const PartLDMComponent * const comp_o =
+            g_array_index(vol->comps, const PartLDMComponent *, i);
+        const PartLDMComponentPrivate * const comp = comp_o->priv;
+
+        /* Check component is spanned */
+        if (comp->type != PART_LDM_COMPONENT_TYPE_SPANNED ||
+            comp->parts->len != 1) {
+            g_set_error(err, LDM_ERROR, PART_LDM_ERROR_NOTSUPPORTED,
+                        "Unsupported configuration: mirrored volume must "
+                        "contain only simple partitions");
+            return FALSE;
+        }
+
+        const PartLDMPartition * const part_o =
+            g_array_index(comp->parts, const PartLDMPartition *, 0);
+        const PartLDMPartitionPrivate * const part = part_o->priv;
+
+        PartLDMDMTable * const chunk_o = _generate_dm_table_part(part, err);
+        if (chunk_o == NULL) {
+            if (err && (*err)->code == PART_LDM_ERROR_MISSING_DISK) {
+                g_warning((*err)->message);
+                g_error_free(*err); *err = NULL;
+                g_string_append(mirror->table, " - -");
+                continue;
+            } else {
+                return FALSE;
+            }
+        }
+
+        g_array_prepend_val(ret, chunk_o);
+        found++;
+
+        g_string_append_printf(mirror->table,
+                               " - /dev/mapper/%s", chunk_o->priv->name->str);
+    }
+
+    if (found == 0) {
+        g_set_error(err, LDM_ERROR, PART_LDM_ERROR_MISSING_DISK,
+                    "Mirrored volume is missing all components");
+        return FALSE;
+    }
+
+    g_string_append(mirror->table, "\n");
+
+    return TRUE;
+}
+
+static gboolean
+_generate_dm_tables_spanned(GArray * const ret,
+                            const PartLDMVolumePrivate * const vol,
+                            const PartLDMComponentPrivate * const comp,
+                            GError ** const err)
+{
+    PartLDMDMTable * const spanned_o =
+        g_object_new(PART_TYPE_LDM_DM_TABLE, NULL);
+    PartLDMDMTablePrivate * const spanned = spanned_o->priv;
+    g_array_append_val(ret, spanned_o);
+
+    spanned->name = g_string_new("");
+    g_string_printf(spanned->name, "ldm_%s_%s", vol->dgname, vol->name);
+
+    spanned->table = g_string_new("");
+    uint64_t pos = 0;
+    for (int i = 0; i < comp->parts->len; i++) {
+        const PartLDMPartition * const part_o =
+            g_array_index(comp->parts, const PartLDMPartition *, i);
+        const PartLDMPartitionPrivate * const part = part_o->priv;
+
+        const PartLDMDiskPrivate * const disk = part->disk->priv;
+        if (!disk->device) {
+            g_set_error(err, LDM_ERROR, PART_LDM_ERROR_MISSING_DISK,
+                        "Disk %s required by spanned volume %s is missing",
+                        disk->name, vol->name);
+            return FALSE;
+        }
+
+        /* Sanity check: current position from adding up sizes of partitions
+         * should equal the volume offset of the partition */
+        if (pos != part->vol_offset) {
+            g_set_error(err, LDM_ERROR, PART_LDM_ERROR_INVALID,
+                        "Partition volume offset does not match sizes of "
+                        "preceding partitions");
+            return FALSE;
+        }
+
+        g_string_append_printf(spanned->table, "%lu %lu linear %s %lu\n",
+                                               pos, pos + part->size,
+                                               disk->device,
+                                               disk->data_start + part->start);
+        pos += part->size;
+    }
+
+    return TRUE;
+}
+
+static gboolean
+_generate_dm_tables_striped(GArray * const ret,
+                            const PartLDMVolumePrivate * const vol,
+                            const PartLDMComponentPrivate * const comp,
+                            GError ** const err)
+{
+    PartLDMDMTable * const striped_o =
+        g_object_new(PART_TYPE_LDM_DM_TABLE, NULL);
+    PartLDMDMTablePrivate * const striped = striped_o->priv;
+    g_array_append_val(ret, striped_o);
+
+    striped->name = g_string_new("");
+    g_string_printf(striped->name, "ldm_%s_%s", vol->dgname, vol->name);
+
+    striped->table = g_string_new("");
+    g_string_printf(striped->table, "0 %lu striped %u %lu",
+                                    vol->size,
+                                    comp->n_columns, comp->stripe_size);
+
+    for (int i = 0; i < comp->parts->len; i++) {
+        const PartLDMPartition * const part_o =
+            g_array_index(comp->parts, const PartLDMPartition *, i);
+        const PartLDMPartitionPrivate * const part = part_o->priv;
+
+        const PartLDMDiskPrivate * const disk = part->disk->priv;
+        if (!disk->device) {
+            g_set_error(err, LDM_ERROR, PART_LDM_ERROR_MISSING_DISK,
+                        "Disk %s required by striped volume %s is missing",
+                        disk->name, vol->name);
+            return FALSE;
+        }
+
+        g_string_append_printf(striped->table, " %s %lu",
+                                               disk->device,
+                                               disk->data_start + part->start);
+    }
+    g_string_append(striped->table, "\n");
+
+    return TRUE;
+}
+
+static gboolean
+_generate_dm_tables_raid5(GArray * const ret,
+                          const PartLDMVolumePrivate * const vol,
+                          GError ** const err)
+{
+    if (vol->comps->len != 1) {
+        g_set_error(err, LDM_ERROR, PART_LDM_ERROR_NOTSUPPORTED,
+                    "Unsupported configuration: volume type RAID5 should "
+                    "have a single child component");
+        return FALSE;
+    }
+
+    const PartLDMComponent * const comp_o =
+        g_array_index(vol->comps, const PartLDMComponent *, 0);
+    const PartLDMComponentPrivate * const comp = comp_o->priv;
+
+    if (comp->type != PART_LDM_COMPONENT_TYPE_RAID) {
+        g_set_error(err, LDM_ERROR, PART_LDM_ERROR_NOTSUPPORTED,
+                    "Unsupported configuration: child component of RAID5 "
+                    "volume must be of type RAID");
+        return FALSE;
+    }
+
+    PartLDMDMTable * const raid5_o = g_object_new(PART_TYPE_LDM_DM_TABLE, NULL);
+    PartLDMDMTablePrivate * const raid5 = raid5_o->priv;
+    g_array_append_val(ret, raid5_o);
+
+    raid5->name = g_string_new("");
+    g_string_printf(raid5->name, "ldm_%s_%s", vol->dgname, vol->name);
+
+    raid5->table = g_string_new("");
+    g_string_printf(raid5->table, "0 %lu raid raid5_ls 1 %lu %u",
+                                  vol->size,
+                                  comp->stripe_size, comp->n_columns);
+
+    int found = 0;
+    for (int i = 0; i < comp->parts->len; i++) {
+        const PartLDMPartition * const part_o =
+            g_array_index(comp->parts, const PartLDMPartition *, i);
+        const PartLDMPartitionPrivate * const part = part_o->priv;
+
+        PartLDMDMTable * const chunk_o = _generate_dm_table_part(part, err);
+        if (chunk_o == NULL) {
+            if (err && (*err)->code == PART_LDM_ERROR_MISSING_DISK) {
+                g_warning((*err)->message);
+                g_error_free(*err); *err = NULL;
+                g_string_append(raid5->table, " - -");
+                continue;
+            } else {
+                return FALSE;
+            }
+        }
+
+        g_array_prepend_val(ret, chunk_o);
+        found++;
+
+        g_string_append_printf(raid5->table,
+                               " - /dev/mapper/%s", chunk_o->priv->name->str);
+    }
+
+    if (found < comp->n_columns - 1) {
+        g_set_error(err, LDM_ERROR, PART_LDM_ERROR_MISSING_DISK,
+                    "RAID5 volume is missing more than 1 component");
+        return FALSE;
+    }
+
+    g_string_append(raid5->table, "\n");
+
+    return TRUE;
+}
+
+GArray *
+part_ldm_volume_generate_dm_tables(const PartLDMVolume * const o,
+                                   GError ** const err)
+{
+    const PartLDMVolumePrivate * const vol = o->priv;
+
+    GArray * const ret = g_array_sized_new(FALSE, FALSE, sizeof(GString *), 1);
+    g_array_set_clear_func(ret, _unref_object);
+
+    switch (vol->type) {
+    case PART_LDM_VOLUME_TYPE_GEN:
+    {
+        if (vol->comps->len > 1) {
+            if (!_generate_dm_tables_mirrored(ret, vol, err)) goto error;
+            return ret;
+        }
+
+        const PartLDMComponent * const comp_o =
+            g_array_index(vol->comps, PartLDMComponent *, 0);
+        const PartLDMComponentPrivate * const comp = comp_o->priv;
+
+        switch (comp->type) {
+        case PART_LDM_COMPONENT_TYPE_SPANNED:
+            if (!_generate_dm_tables_spanned(ret, vol, comp, err)) goto error;
+            break;
+
+        case PART_LDM_COMPONENT_TYPE_STRIPED:
+            if (!_generate_dm_tables_striped(ret, vol, comp, err)) goto error;
+            break;
+
+        case PART_LDM_COMPONENT_TYPE_RAID:
+        default:
+            g_set_error(err, LDM_ERROR, PART_LDM_ERROR_NOTSUPPORTED,
+                        "Unsupported configuration: volume is type GEN, "
+                        "component is neither SPANNED nor STRIPED");
+            goto error;
+        }
+
+        return ret;
+    }
+
+    case PART_LDM_VOLUME_TYPE_RAID5:
+    {
+        if (!_generate_dm_tables_raid5(ret, vol, err)) goto error;
+        return ret;
+    }
+
+    default:
+        /* Should be impossible */
+        g_error("Unexpected volume type: %u", vol->type);
+    }
+
+error:
+    g_array_unref(ret);
+    return NULL;
 }

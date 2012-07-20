@@ -167,14 +167,44 @@ int main(int argc, const char *argv[])
             }
             g_array_unref(comps);
         }
+
+        for (int j = 0; j < vols->len; j++) {
+            PartLDMVolume * const vol =
+                g_array_index(vols, PartLDMVolume *, j);
+            GArray *tables = part_ldm_volume_generate_dm_tables(vol, &err);
+
+            if (tables == NULL) {
+                gchar *name;
+                g_object_get(vol, "name", &name, NULL);
+
+                fprintf(stderr, "Error generating tables for volume %s: %s\n",
+                                name, err->message);
+                g_free(name);
+
+                g_error_free(err); err = NULL;
+                continue;
+            }
+
+            for (int k = 0; k < tables->len; k++) {
+                PartLDMDMTable * const table =
+                    g_array_index(tables, PartLDMDMTable *, k);
+
+                gchar *name, *dm;
+                g_object_get(table, "name", &name, "table", &dm, NULL);
+
+                printf("Device: %s\n", name);
+                printf("%s", dm);
+
+                g_free(name);
+                g_free(dm);
+            }
+        }
+
         g_array_unref(vols);
-
-        //part_ldm_disk_group_dump(dg);
     }
-    g_array_unref(dgs);
+    g_array_unref(dgs); dgs = NULL;
 
-
-    g_object_unref(ldm);
+    g_object_unref(ldm); ldm = NULL;
 
     return 0;
 }

@@ -12,6 +12,7 @@ G_BEGIN_DECLS
  * @PART_LDM_ERROR_NOT_LDM: The device is not part of an LDM disk group
  * @PART_LDM_ERROR_INVALID: The LDM metadata is corrupt
  * @PART_LDM_ERROR_NOTSUPPORTED: Unsupported LDM metadata
+ * @PART_LDM_ERROR_MISSING_DISK: A disk is missing from a disk group
  */
 typedef enum {
     PART_LDM_ERROR_INTERNAL,
@@ -20,6 +21,7 @@ typedef enum {
     PART_LDM_ERROR_INVALID,
     PART_LDM_ERROR_INCONSISTENT,
     PART_LDM_ERROR_NOTSUPPORTED,
+    PART_LDM_ERROR_MISSING_DISK
 } PartLDMError;
 
 #define PART_TYPE_LDM_ERROR (part_ldm_error_get_type())
@@ -223,6 +225,35 @@ struct _PartLDMDiskClass
     GObjectClass parent_class;
 };
 
+/* PartLDMDMTable */
+
+#define PART_TYPE_LDM_DM_TABLE            (part_ldm_dm_table_get_type())
+#define PART_LDM_DM_TABLE(obj)            (G_TYPE_CHECK_INSTANCE_CAST \
+        ((obj), PART_TYPE_LDM_DM_TABLE, PartLDMDMTable))
+#define PART_LDM_DM_TABLE_CLASS(klass)    (G_TYPE_CHECK_CLASS_CAST \
+        ((klass), PART_TYPE_LDM_DM_TABLE, PartLDMDMTable))
+#define PART_IS_LDM_DM_TABLE(obj)         (G_TYPE_CHECK_INSTANCE_TYPE \
+        ((obj), PART_TYPE_LDM_DM_TABLE))
+#define PART_IS_LDM_DM_TABLE_CLASS(klass) (G_TYPE_CHECK_CLASS_TYPE \
+        ((klass), PART_TYPE_LDM_DM_TABLE))
+#define PART_LDM_DM_TABLE_GET_CLASS(obj)  (G_TYPE_INSTANCE_GET_CLASS \
+        ((obj), PART_TYPE_LDM_DM_TABLE, PartLDMDMTableClass))
+
+typedef struct _PartLDMDMTablePrivate PartLDMDMTablePrivate;
+
+typedef struct _PartLDMDMTable PartLDMDMTable;
+struct _PartLDMDMTable
+{
+    GObject parent;
+    PartLDMDMTablePrivate *priv;
+};
+
+typedef struct _PartLDMDMTableClass PartLDMDMTableClass;
+struct _PartLDMDMTableClass
+{
+    GObjectClass parent_class;
+};
+
 GType part_ldm_get_type(void);
 GType part_ldm_disk_group_get_type(void);
 
@@ -236,6 +267,9 @@ GArray *part_ldm_disk_group_get_volumes(PartLDMDiskGroup *o, GError **err);
 GArray *part_ldm_volume_get_components(PartLDMVolume *o, GError **err);
 GArray *part_ldm_component_get_partitions(PartLDMComponent *o, GError **err);
 PartLDMDisk *part_ldm_partition_get_disk(PartLDMPartition *o, GError **err);
+
+GArray *part_ldm_volume_generate_dm_tables(const PartLDMVolume *o,
+                                           GError **err);
 
 G_END_DECLS
 
