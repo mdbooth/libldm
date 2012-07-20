@@ -1297,7 +1297,7 @@ _read_privhead_gpt(const int fd, const gchar * const path,
     r = gpt_open(fd, &h);
     if (r < 0) {
         _map_gpt_error(r, path, err);
-        goto error;
+        return FALSE;
     }
 
     gpt_t gpt;
@@ -1314,7 +1314,8 @@ _read_privhead_gpt(const int fd, const gchar * const path,
         r = gpt_get_pte(h, 0, &pte);
         if (r < 0) {
             _map_gpt_error(r, path, err);
-            goto error;
+            gpt_close(h);
+            return FALSE;
         }
 
         if (uuid_compare(pte.type, LDM_METADATA) == 0) {
@@ -1327,9 +1328,6 @@ _read_privhead_gpt(const int fd, const gchar * const path,
 
     g_set_error(err, LDM_ERROR, PART_LDM_ERROR_NOT_LDM,
                 "%s does not contain LDM metadata", path);
-
-error:
-    gpt_close(h);
     return FALSE;
 }
 
