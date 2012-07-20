@@ -169,7 +169,7 @@ error:
 int
 gpt_open(int fd, gpt_handle_t **h)
 {
-    size_t blksize;
+    int blksize;
 
     int rc = ioctl(fd, BLKSSZGET, &blksize);
     if (rc == -1) {
