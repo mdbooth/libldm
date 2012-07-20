@@ -145,6 +145,20 @@ struct _ldm_vblk_rec_head
     uint32_t size;
 } __attribute__((__packed__));
 
+/* Array clearing functions */
+
+static void
+_unref_object(gpointer const data)
+{
+    g_object_unref(*(GObject **)data);
+}
+
+static void
+_free_pointer(gpointer const data)
+{
+    g_free(*(gpointer *)data);
+}
+
 /* GLIB error handling */
 
 #define LDM_ERROR (part_ldm_error_quark())
@@ -185,17 +199,6 @@ struct _PartLDMPrivate
 };
 
 G_DEFINE_TYPE(PartLDM, part_ldm, G_TYPE_OBJECT)
-
-static void
-_unref_object(gpointer const data)
-{
-    g_object_unref(*(GObject **)data);
-}
-
-static void _free_pointer(gpointer const data)
-{
-    g_free(*(gpointer *)data);
-}
 
 static void
 part_ldm_dispose(GObject * const object)
