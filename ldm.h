@@ -7,19 +7,19 @@ G_BEGIN_DECLS
 
 /**
  * PartLDMError:
+ * @PART_LDM_ERROR_INTERNAL: An internal error
  * @PART_LDM_ERROR_IO: There was an IO error accessing a device
  * @PART_LDM_ERROR_NOT_LDM: The device is not part of an LDM disk group
  * @PART_LDM_ERROR_INVALID: The LDM metadata is corrupt
  * @PART_LDM_ERROR_NOTSUPPORTED: Unsupported LDM metadata
- * @PART_LDM_ERROR_INTERNAL: An internal error
  */
 typedef enum {
+    PART_LDM_ERROR_INTERNAL,
     PART_LDM_ERROR_IO,
     PART_LDM_ERROR_NOT_LDM,
     PART_LDM_ERROR_INVALID,
     PART_LDM_ERROR_INCONSISTENT,
     PART_LDM_ERROR_NOTSUPPORTED,
-    PART_LDM_ERROR_INTERNAL
 } PartLDMError;
 
 #define PART_TYPE_LDM_ERROR (part_ldm_error_get_type())

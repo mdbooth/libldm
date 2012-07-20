@@ -175,6 +175,7 @@ part_ldm_error_get_type(void)
     static GType etype = 0;
     if (etype == 0) {
         static const GEnumValue values[] = {
+            { PART_LDM_ERROR_INTERNAL, "PART_LDM_ERROR_INTERNAL", "internal" },
             { PART_LDM_ERROR_IO, "PART_LDM_ERROR_IO", "io" },
             { PART_LDM_ERROR_NOT_LDM, "PART_LDM_ERROR_NOT_LDM", "not_ldm" },
             { PART_LDM_ERROR_INVALID, "PART_LDM_ERROR_INVALID", "invalid" },
