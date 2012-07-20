@@ -383,6 +383,7 @@ struct _PartLDMVolumePrivate
 {
     guint32 id;
     gchar *name;
+    gchar *dgname;
 
     PartLDMVolumeType type;
     guint64 size;
@@ -442,7 +443,6 @@ part_ldm_volume_get_property(GObject * const o, const guint property_id,
 static void
 part_ldm_volume_dispose(GObject * const object)
 {
-
     PartLDMVolume * const vol_o = PART_LDM_VOLUME(object);
     PartLDMVolumePrivate * const vol = vol_o->priv;
 
@@ -456,6 +456,7 @@ part_ldm_volume_finalize(GObject * const object)
     PartLDMVolumePrivate * const vol = vol_o->priv;
 
     g_free(vol->name); vol->name = NULL;
+    g_free(vol->dgname); vol->dgname = NULL;
     g_free(vol->id1); vol->id1 = NULL;
     g_free(vol->id2); vol->id2 = NULL;
     g_free(vol->hint); vol->hint = NULL;
@@ -913,6 +914,7 @@ struct _PartLDMDiskPrivate
 {
     guint32 id;
     gchar *name;
+    gchar *dgname;
 
     guint64 data_start;
     guint64 data_size;
@@ -921,9 +923,6 @@ struct _PartLDMDiskPrivate
 
     uuid_t guid;
     gchar *device; // NULL until device is found
-
-    /* We don't keep a strong reference here to avoid a circular reference. */
-    GWeakRef dg;
 };
 
 G_DEFINE_TYPE(PartLDMDisk, part_ldm_disk, G_TYPE_OBJECT)
@@ -979,21 +978,13 @@ part_ldm_disk_get_property(GObject * const o, const guint property_id,
 }
 
 static void
-part_ldm_disk_dispose(GObject * const object)
-{
-    PartLDMDisk * const disk_o = PART_LDM_DISK(object);
-    PartLDMDiskPrivate * const disk = disk_o->priv;
-
-    g_weak_ref_set(&disk->dg, NULL);
-}
-
-static void
 part_ldm_disk_finalize(GObject * const object)
 {
     PartLDMDisk * const disk_o = PART_LDM_DISK(object);
     PartLDMDiskPrivate * const disk = disk_o->priv;
 
     g_free(disk->name); disk->name = NULL;
+    g_free(disk->dgname); disk->dgname = NULL;
     g_free(disk->device); disk->device = NULL;
 }
 
@@ -1001,7 +992,6 @@ static void
 part_ldm_disk_class_init(PartLDMDiskClass * const klass)
 {
     GObjectClass *object_class = G_OBJECT_CLASS(klass);
-    object_class->dispose = part_ldm_disk_dispose;
     object_class->finalize = part_ldm_disk_finalize;
     object_class->get_property = part_ldm_disk_get_property;
 
@@ -1720,7 +1710,6 @@ _parse_vblk(const void * data, PartLDMDiskGroup * const dg_o,
         PartLDMDisk * const disk =
             PART_LDM_DISK(g_object_new(PART_TYPE_LDM_DISK, NULL));
         g_array_append_val(dg->disks, disk);
-        g_weak_ref_set(&disk->priv->dg, dg_o);
         if (!_parse_vblk_disk(revision, rec_head->flags, data, disk->priv, err))
             return FALSE;
         break;
@@ -1950,16 +1939,26 @@ _parse_vblks(const void * const config, const gchar * const path,
     }
 
     for (int i = 0; i < dg->n_vols; i++) {
-        PartLDMVolume * const vol =
+        PartLDMVolume * const vol_o =
             g_array_index(dg->vols, PartLDMVolume *, i);
+        PartLDMVolumePrivate * const vol = vol_o->priv;
 
-        if (vol->priv->comps->len != vol->priv->n_comps) {
+        if (vol->comps->len != vol->n_comps) {
             g_set_error(err, LDM_ERROR, PART_LDM_ERROR_INVALID,
                         "Volume %u expected %u components, but only found %u",
-                        vol->priv->id,
-                        vol->priv->n_comps, vol->priv->comps->len);
+                        vol->id, vol->n_comps, vol->comps->len);
             return FALSE;
         }
+
+        vol->dgname = g_strdup(dg->name);
+    }
+
+    for (int i = 0; i < dg->n_disks; i++) {
+        PartLDMDisk * const disk_o =
+            g_array_index(dg->disks, PartLDMDisk *, i);
+        PartLDMDiskPrivate * const disk = disk_o->priv;
+
+        disk->dgname = g_strdup(dg->name);
     }
 
     return TRUE;
