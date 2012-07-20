@@ -1915,25 +1915,31 @@ _parse_vblks(const void * const config, const gchar * const path,
     }
 
     for (int i = 0; i < dg->n_comps; i++) {
-        PartLDMComponent * const comp =
+        PartLDMComponent * const comp_o =
             g_array_index(dg->comps, PartLDMComponent *, i);
+        PartLDMComponentPrivate * const comp = comp_o->priv;
 
-        if (comp->priv->parts->len != comp->priv->n_parts) {
+        if (comp->parts->len != comp->n_parts) {
             g_set_error(err, LDM_ERROR, PART_LDM_ERROR_INVALID,
                         "Component %u expected %u partitions, but found %u",
-                        comp->priv->id,
-                        comp->priv->n_parts, comp->priv->parts->len);
+                        comp->id,
+                        comp->n_parts, comp->parts->len);
             return FALSE;
         }
 
+        /* Sort partitions into index order. We rely on this sorting when
+         * generating DM tables */
+        g_array_sort(comp->parts, _cmp_component_parts);
+
         gboolean parent_found = FALSE;
         for (int j = 0; j < dg->n_vols; j++) {
-            PartLDMVolume * const vol =
+            PartLDMVolume * const vol_o =
                 g_array_index(dg->vols, PartLDMVolume *, j);
+            PartLDMVolumePrivate * const vol = vol_o->priv;
 
-            if (vol->priv->id == comp->priv->parent_id) {
-                g_array_append_val(vol->priv->comps, comp);
-                g_object_ref(comp);
+            if (vol->id == comp->parent_id) {
+                g_array_append_val(vol->comps, comp_o);
+                g_object_ref(comp_o);
                 parent_found = TRUE;
                 break;
             }
@@ -1941,7 +1947,7 @@ _parse_vblks(const void * const config, const gchar * const path,
         if (!parent_found) {
             g_set_error(err, LDM_ERROR, PART_LDM_ERROR_INVALID,
                         "Didn't find parent volume %u for component %u",
-                        comp->priv->parent_id, comp->priv->id);
+                        comp->parent_id, comp->id);
             return FALSE;
         }
     }
