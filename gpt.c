@@ -58,11 +58,11 @@ struct _gpt_handle {
 };
 
 int
-gpt_open_blksize(int fd, const size_t blksize, gpt_handle_t **h)
+gpt_open_secsize(int fd, const size_t secsize, gpt_handle_t **h)
 {
     int err = 0;
 
-    const off_t gpt_start = blksize;
+    const off_t gpt_start = secsize;
 
     struct _gpt_head head;
     int read = 0;
@@ -133,7 +133,7 @@ gpt_open_blksize(int fd, const size_t blksize, gpt_handle_t **h)
     (*h)->pte_array = malloc(pte_array_size);
     if ((*h)->pte_array == NULL) abort();
 
-    const off_t pte_array_start = _gpt->pte_array_start_lba * blksize;
+    const off_t pte_array_start = _gpt->pte_array_start_lba * secsize;
     read = 0;
     while (read < pte_array_size) {
         ssize_t in = pread(fd, (*h)->pte_array + read, pte_array_size - read,
@@ -169,14 +169,12 @@ error:
 int
 gpt_open(int fd, gpt_handle_t **h)
 {
-    int blksize;
-
-    int rc = ioctl(fd, BLKSSZGET, &blksize);
-    if (rc == -1) {
-        blksize = 512;
+    int secsize;
+    if (ioctl(fd, BLKSSZGET, &secsize) == -1) {
+        secsize = 512;
     }
 
-    return gpt_open_blksize(fd, blksize, h);
+    return gpt_open_secsize(fd, secsize, h);
 }
 
 void

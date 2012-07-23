@@ -30,7 +30,7 @@ typedef struct {
 typedef struct _gpt_handle gpt_handle_t;
 
 int gpt_open(int fd, gpt_handle_t **h);
-int gpt_open_blksize(int fd, size_t blksize, gpt_handle_t **h);
+int gpt_open_secsize(int fd, size_t secsize, gpt_handle_t **h);
 void gpt_close(gpt_handle_t *h);
 
 void gpt_get_header(gpt_handle_t *h, gpt_t *gpt);
