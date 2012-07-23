@@ -21,3 +21,27 @@ partread_LDADD = $(top_srcdir)/src/libldm.la
 
 ldmread_CFLAGS = -I$(top_srcdir)/src $(GOBJECT_CFLAGS)
 ldmread_LDADD = $(top_srcdir)/src/libldm.la
+
+img_files = \
+    data/ldm-2003r2-mirrored-1.img \
+    data/ldm-2003r2-mirrored-2.img \
+    data/ldm-2003r2-raid5-1.img \
+    data/ldm-2003r2-raid5-2.img \
+    data/ldm-2003r2-raid5-3.img \
+    data/ldm-2003r2-simple.img \
+    data/ldm-2003r2-spanned-1.img \
+    data/ldm-2003r2-spanned-2.img \
+    data/ldm-2003r2-striped-1.img \
+    data/ldm-2003r2-striped-2.img \
+    data/ldm-2008r2-mirrored-1.img \
+    data/ldm-2008r2-mirrored-2.img \
+    data/ldm-2008r2-raid5-1.img \
+    data/ldm-2008r2-raid5-2.img \
+    data/ldm-2008r2-raid5-3.img \
+    data/ldm-2008r2-spanned-1.img \
+    data/ldm-2008r2-spanned-2.img \
+    data/ldm-2008r2-striped-1.img \
+    data/ldm-2008r2-striped-2.img
+
+$(img_files): data/ldm-data.tar.xz Makefile
+	tar -C $(builddir)/data -SJxf $< && touch $(img_files)
