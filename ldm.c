@@ -32,7 +32,7 @@
  * be accessed directly.
  */
 
-struct _ldm_privhead
+struct _privhead
 {
     char magic[8]; // "PRIVHEAD"
 
@@ -71,7 +71,7 @@ struct _ldm_privhead
 
 } __attribute__((__packed__));
 
-struct _ldm_tocblock_bitmap
+struct _tocblock_bitmap
 {
     char name[8];
     uint16_t flags1;
@@ -80,7 +80,7 @@ struct _ldm_tocblock_bitmap
     uint64_t flags2;
 } __attribute__((__packed__));
 
-struct _ldm_tocblock
+struct _tocblock
 {
     char magic[8]; // "TOCBLOCK"
 
@@ -89,10 +89,10 @@ struct _ldm_tocblock
     uint32_t seq2;
     char padding2[16];
 
-    struct _ldm_tocblock_bitmap bitmap[2];
+    struct _tocblock_bitmap bitmap[2];
 } __attribute__((__packed__));
 
-struct _ldm_vmdb
+struct _vmdb
 {
     char magic[4]; // "VMDB"
 
@@ -125,7 +125,7 @@ struct _ldm_vmdb
 } __attribute__((__packed__));
 
 /* This is the header of every VBLK entry */
-struct _ldm_vblk_head
+struct _vblk_head
 {
     char magic[4]; // "VBLK"
 
@@ -139,7 +139,7 @@ struct _ldm_vblk_head
 /* This is the header of every VBLK record, which may span multiple VBLK
  * entries. I.e. if a VBLK record is split across 2 entries, only the first will
  * have this header immediately following the entry header. */
-struct _ldm_vblk_rec_head
+struct _vblk_rec_head
 {
     uint16_t status;
     uint8_t  flags;
@@ -1214,11 +1214,11 @@ part_ldm_dm_table_init(PartLDMDMTable * const o)
 
 static gboolean
 _find_vmdb(const void * const config, const gchar * const path,
-           const guint secsize, const struct _ldm_vmdb ** const vmdb,
+           const guint secsize, const struct _vmdb ** const vmdb,
            GError ** const err)
 {
     /* TOCBLOCK starts 2 sectors into config */
-    const struct _ldm_tocblock *tocblock = config + secsize * 2;
+    const struct _tocblock *tocblock = config + secsize * 2;
     if (memcmp(tocblock->magic, "TOCBLOCK", 8) != 0) {
         g_set_error(err, LDM_ERROR, PART_LDM_ERROR_INVALID,
                     "Didn't find TOCBLOCK at config offset %lX",
@@ -1229,7 +1229,7 @@ _find_vmdb(const void * const config, const gchar * const path,
     /* Find the start of the DB */
     *vmdb = NULL;
     for (int i = 0; i < 2; i++) {
-        const struct _ldm_tocblock_bitmap *bitmap = &tocblock->bitmap[i];
+        const struct _tocblock_bitmap *bitmap = &tocblock->bitmap[i];
         if (strcmp(bitmap->name, "config") == 0) {
             *vmdb = config + be64toh(tocblock->bitmap[i].start) * secsize;
             break;
@@ -1254,7 +1254,7 @@ _find_vmdb(const void * const config, const gchar * const path,
 
 static gboolean
 _read_config(const int fd, const gchar * const path,
-             const guint secsize, const struct _ldm_privhead * const privhead,
+             const guint secsize, const struct _privhead * const privhead,
              void ** const config, GError ** const err)
 {
     /* Sanity check ldm_config_start and ldm_config_size */
@@ -1322,7 +1322,7 @@ error:
 static gboolean
 _read_privhead_off(const int fd, const gchar * const path,
                    const uint64_t ph_start,
-                   struct _ldm_privhead * const privhead, GError **err)
+                   struct _privhead * const privhead, GError **err)
 {
     size_t read = 0;
     while (read < sizeof(*privhead)) {
@@ -1355,7 +1355,7 @@ _read_privhead_off(const int fd, const gchar * const path,
 
 static gboolean
 _read_privhead_mbr(const int fd, const gchar * const path, const guint secsize,
-                   struct _ldm_privhead * const privhead, GError ** const err)
+                   struct _privhead * const privhead, GError ** const err)
 {
     /* On an MBR disk, the first PRIVHEAD is in sector 6 */
     return _read_privhead_off(fd, path, secsize * 6, privhead, err);
@@ -1385,7 +1385,7 @@ void _map_gpt_error(const int e, const gchar * const path, GError ** const err)
 
 static gboolean
 _read_privhead_gpt(const int fd, const gchar * const path, const guint secsize,
-                   struct _ldm_privhead * const privhead, GError ** const err)
+                   struct _privhead * const privhead, GError ** const err)
 {
     int r;
 
@@ -1429,7 +1429,7 @@ _read_privhead_gpt(const int fd, const gchar * const path, const guint secsize,
 
 static gboolean
 _read_privhead(const int fd, const gchar * const path, const guint secsize,
-               struct _ldm_privhead * const privhead, GError ** const err)
+               struct _privhead * const privhead, GError ** const err)
 {
     // Whether the disk is MBR or GPT, we expect to find an MBR at the beginning
     mbr_t mbr;
@@ -1767,12 +1767,12 @@ _parse_vblk(const void * data, PartLDMDiskGroup * const dg_o,
 {
     PartLDMDiskGroupPrivate * const dg = dg_o->priv;
 
-    const struct _ldm_vblk_rec_head * const rec_head = data;
+    const struct _vblk_rec_head * const rec_head = data;
 
     const guint8 type = rec_head->type & 0x0F;
     const guint8 revision = (rec_head->type & 0xF0) >> 4;
 
-    data += sizeof(struct _ldm_vblk_rec_head);
+    data += sizeof(struct _vblk_rec_head);
 
     switch (type) {
     case 0x00:
@@ -1849,7 +1849,7 @@ _cmp_component_parts(gconstpointer a, gconstpointer b)
 
 static gboolean
 _parse_vblks(const void * const config, const gchar * const path,
-          const struct _ldm_vmdb * const vmdb,
+          const struct _vmdb * const vmdb,
           PartLDMDiskGroup * const dg_o, GError ** const err)
 {
     PartLDMDiskGroupPrivate * const dg = dg_o->priv;
@@ -1877,12 +1877,12 @@ _parse_vblks(const void * const config, const gchar * const path,
     g_array_set_clear_func(dg->vols, _unref_object);
 
     const guint16 vblk_size = be32toh(vmdb->vblk_size);
-    const guint16 vblk_data_size = vblk_size - sizeof(struct _ldm_vblk_head);
+    const guint16 vblk_data_size = vblk_size - sizeof(struct _vblk_head);
     const void *vblk = (void *)vmdb + be32toh(vmdb->vblk_first_offset);
     for(;;) {
         const int offset = vblk - config;
 
-        const struct _ldm_vblk_head * const head = vblk;
+        const struct _vblk_head * const head = vblk;
         if (memcmp(head->magic, "VBLK", 4) != 0) break;
 
         /* Sanity check the header */
@@ -1896,7 +1896,7 @@ _parse_vblks(const void * const config, const gchar * const path,
             goto error;
         }
 
-        vblk += sizeof(struct _ldm_vblk_head);
+        vblk += sizeof(struct _vblk_head);
 
         /* Check for a spanned record */
         if (be16toh(head->entries_total) > 1) {
@@ -2123,11 +2123,11 @@ part_ldm_add_fd(PartLDM * const o, const int fd, const guint secsize,
 
     void *config = NULL;
 
-    struct _ldm_privhead privhead;
+    struct _privhead privhead;
     if (!_read_privhead(fd, path, secsize, &privhead, err)) goto error;
     if (!_read_config(fd, path, secsize, &privhead, &config, err)) goto error;
 
-    const struct _ldm_vmdb *vmdb;
+    const struct _vmdb *vmdb;
     if (!_find_vmdb(config, path, secsize, &vmdb, err)) goto error;
 
     uuid_t disk_guid;
