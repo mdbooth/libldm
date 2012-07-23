@@ -1,278 +1,278 @@
-#ifndef LIBPART_LDM_H__
-#define LIBPART_LDM_H__
+#ifndef LIBLDM_LDM_H__
+#define LIBLDM_LDM_H__
 
 #include <glib-object.h>
 
 G_BEGIN_DECLS
 
 /**
- * PartLDMError:
- * @PART_LDM_ERROR_INTERNAL: An internal error
- * @PART_LDM_ERROR_IO: There was an IO error accessing a device
- * @PART_LDM_ERROR_NOT_LDM: The device is not part of an LDM disk group
- * @PART_LDM_ERROR_INVALID: The LDM metadata is corrupt
- * @PART_LDM_ERROR_NOTSUPPORTED: Unsupported LDM metadata
- * @PART_LDM_ERROR_MISSING_DISK: A disk is missing from a disk group
+ * LDMError:
+ * @LDM_ERROR_INTERNAL: An internal error
+ * @LDM_ERROR_IO: There was an IO error accessing a device
+ * @LDM_ERROR_NOT_LDM: The device is not part of an LDM disk group
+ * @LDM_ERROR_INVALID: The LDM metadata is corrupt
+ * @LDM_ERROR_NOTSUPPORTED: Unsupported LDM metadata
+ * @LDM_ERROR_MISSING_DISK: A disk is missing from a disk group
  */
 typedef enum {
-    PART_LDM_ERROR_INTERNAL,
-    PART_LDM_ERROR_IO,
-    PART_LDM_ERROR_NOT_LDM,
-    PART_LDM_ERROR_INVALID,
-    PART_LDM_ERROR_INCONSISTENT,
-    PART_LDM_ERROR_NOTSUPPORTED,
-    PART_LDM_ERROR_MISSING_DISK
-} PartLDMError;
+    LDM_ERROR_INTERNAL,
+    LDM_ERROR_IO,
+    LDM_ERROR_NOT_LDM,
+    LDM_ERROR_INVALID,
+    LDM_ERROR_INCONSISTENT,
+    LDM_ERROR_NOTSUPPORTED,
+    LDM_ERROR_MISSING_DISK
+} LDMError;
 
-#define PART_TYPE_LDM_ERROR (part_ldm_error_get_type())
+#define LDM_TYPE_ERROR (ldm_error_get_type())
 
-GType part_ldm_error_get_type(void);
+GType ldm_error_get_type(void);
 
-/* PartLDM */
+/* LDM */
 
-#define PART_TYPE_LDM               (part_ldm_get_type())
-#define PART_LDM(obj)               (G_TYPE_CHECK_INSTANCE_CAST \
-                                        ((obj), PART_TYPE_LDM, PartLDM))
-#define PART_LDM_CLASS(klass)       (G_TYPE_CHECK_CLASS_CAST \
-                                        ((klass), PART_TYPE_LDM, PartLDMClass))
-#define PART_IS_LDM(obj)            (G_TYPE_CHECK_INSTANCE_TYPE \
-                                        ((obj), PART_TYPE_LDM))
-#define PART_IS_LDM_CLASS(klass)    (G_TYPE_CHECK_CLASS_TYPE \
-                                        ((klass), PART_TYPE_LDM))
-#define PART_LDM_GET_CLASS(obj)     (G_TYPE_INSTANCE_GET_CLASS \
-                                        ((obj), PART_TYPE_LDM, PartLDMClass))
+#define LDM_TYPE            (ldm_get_type())
+#define LDM(obj)            (G_TYPE_CHECK_INSTANCE_CAST \
+                                        ((obj), LDM_TYPE, LDM))
+#define LDM_CLASS(klass)    (G_TYPE_CHECK_CLASS_CAST \
+                                        ((klass), LDM_TYPE, LDMClass))
+#define IS_LDM(obj)         (G_TYPE_CHECK_INSTANCE_TYPE \
+                                        ((obj), LDM_TYPE))
+#define IS_LDM_CLASS(klass) (G_TYPE_CHECK_CLASS_TYPE \
+                                        ((klass), LDM_TYPE))
+#define LDM_GET_CLASS(obj)  (G_TYPE_INSTANCE_GET_CLASS \
+                                        ((obj), LDM_TYPE, LDMClass))
 
-typedef struct _PartLDMPrivate PartLDMPrivate;
+typedef struct _LDMPrivate LDMPrivate;
 
-typedef struct _PartLDM PartLDM;
-struct _PartLDM
+typedef struct _LDM LDM;
+struct _LDM
 {
     GObject parent;
-    PartLDMPrivate *priv;
+    LDMPrivate *priv;
 };
 
-typedef struct _PartLDMClass PartLDMClass;
-struct _PartLDMClass
+typedef struct _LDMClass LDMClass;
+struct _LDMClass
 {
     GObjectClass parent_class;
 };
 
-/* PartLDMDiskGroup */
+/* LDMDiskGroup */
 
-#define PART_TYPE_LDM_DISK_GROUP            (part_ldm_disk_group_get_type())
-#define PART_LDM_DISK_GROUP(obj)            (G_TYPE_CHECK_INSTANCE_CAST \
-        ((obj), PART_TYPE_LDM_DISK_GROUP, PartLDMDiskGroup))
-#define PART_LDM_DISK_GROUP_CLASS(klass)    (G_TYPE_CHECK_CLASS_CAST \
-        ((klass), PART_TYPE_LDM_DISK_GROUP, PartLDMDiskGroupClass))
-#define PART_IS_LDM_DISK_GROUP(obj)         (G_TYPE_CHECK_INSTANCE_TYPE \
-        ((obj), PART_TYPE_LDM_DISK_GROUP))
-#define PART_IS_LDM_DISK_GROUP_CLASS(klass) (G_TYPE_CHECK_CLASS_TYPE \
-        ((klass), PART_TYPE_LDM_DISK_GROUP))
-#define PART_LDM_DISK_GROUP_GET_CLASS(obj)  (G_TYPE_INSTANCE_GET_CLASS \
-        ((obj), PART_TYPE_LDM_DISK_GROUP, PartLDMDiskGroupClass))
+#define LDM_TYPE_DISK_GROUP            (ldm_disk_group_get_type())
+#define LDM_DISK_GROUP(obj)            (G_TYPE_CHECK_INSTANCE_CAST \
+        ((obj), LDM_TYPE_DISK_GROUP, LDMDiskGroup))
+#define LDM_DISK_GROUP_CLASS(klass)    (G_TYPE_CHECK_CLASS_CAST \
+        ((klass), LDM_TYPE_DISK_GROUP, LDMDiskGroupClass))
+#define LDM_IS_DISK_GROUP(obj)         (G_TYPE_CHECK_INSTANCE_TYPE \
+        ((obj), LDM_TYPE_DISK_GROUP))
+#define LDM_IS_DISK_GROUP_CLASS(klass) (G_TYPE_CHECK_CLASS_TYPE \
+        ((klass), LDM_TYPE_DISK_GROUP))
+#define LDM_DISK_GROUP_GET_CLASS(obj)  (G_TYPE_INSTANCE_GET_CLASS \
+        ((obj), LDM_TYPE_DISK_GROUP, LDMDiskGroupClass))
 
-typedef struct _PartLDMDiskGroupPrivate PartLDMDiskGroupPrivate;
+typedef struct _LDMDiskGroupPrivate LDMDiskGroupPrivate;
 
-typedef struct _PartLDMDiskGroup PartLDMDiskGroup;
-struct _PartLDMDiskGroup
+typedef struct _LDMDiskGroup LDMDiskGroup;
+struct _LDMDiskGroup
 {
     GObject parent;
-    PartLDMDiskGroupPrivate *priv;
+    LDMDiskGroupPrivate *priv;
 };
 
-typedef struct _PartLDMDiskGroupClass PartLDMDiskGroupClass;
-struct _PartLDMDiskGroupClass
+typedef struct _LDMDiskGroupClass LDMDiskGroupClass;
+struct _LDMDiskGroupClass
 {
     GObjectClass parent_class;
 };
 
-/* PartLDMVolumeType */
+/* LDMVolumeType */
 
 typedef enum {
-    PART_LDM_VOLUME_TYPE_GEN = 0x3,
-    PART_LDM_VOLUME_TYPE_RAID5 = 0x4
-} PartLDMVolumeType;
+    LDM_VOLUME_TYPE_GEN = 0x3,
+    LDM_VOLUME_TYPE_RAID5 = 0x4
+} LDMVolumeType;
 
-#define PART_TYPE_LDM_VOLUME_TYPE (part_ldm_volume_type_get_type())
+#define LDM_TYPE_VOLUME_TYPE (ldm_volume_type_get_type())
 
-GType part_ldm_volume_type_get_type(void);
+GType ldm_volume_type_get_type(void);
 
-/* PartLDMVolume */
+/* LDMVolume */
 
-#define PART_TYPE_LDM_VOLUME            (part_ldm_volume_get_type())
-#define PART_LDM_VOLUME(obj)            (G_TYPE_CHECK_INSTANCE_CAST \
-        ((obj), PART_TYPE_LDM_VOLUME, PartLDMVolume))
-#define PART_LDM_VOLUME_CLASS(klass)    (G_TYPE_CHECK_CLASS_CAST \
-        ((klass), PART_TYPE_LDM_VOLUME, PartLDMVolumeClass))
-#define PART_IS_LDM_VOLUME(obj)         (G_TYPE_CHECK_INSTANCE_TYPE \
-        ((obj), PART_TYPE_LDM_VOLUME))
-#define PART_IS_LDM_VOLUME_CLASS(klass) (G_TYPE_CHECK_CLASS_TYPE \
-        ((klass), PART_TYPE_LDM_VOLUME))
-#define PART_LDM_VOLUME_GET_CLASS(obj)  (G_TYPE_INSTANCE_GET_CLASS \
-        ((obj), PART_TYPE_LDM_VOLUME, PartLDMVolumeClass))
+#define LDM_TYPE_VOLUME            (ldm_volume_get_type())
+#define LDM_VOLUME(obj)            (G_TYPE_CHECK_INSTANCE_CAST \
+        ((obj), LDM_TYPE_VOLUME, LDMVolume))
+#define LDM_VOLUME_CLASS(klass)    (G_TYPE_CHECK_CLASS_CAST \
+        ((klass), LDM_TYPE_VOLUME, LDMVolumeClass))
+#define LDM_IS_VOLUME(obj)         (G_TYPE_CHECK_INSTANCE_TYPE \
+        ((obj), LDM_TYPE_VOLUME))
+#define LDM_IS_VOLUME_CLASS(klass) (G_TYPE_CHECK_CLASS_TYPE \
+        ((klass), LDM_TYPE_VOLUME))
+#define LDM_VOLUME_GET_CLASS(obj)  (G_TYPE_INSTANCE_GET_CLASS \
+        ((obj), LDM_TYPE_VOLUME, LDMVolumeClass))
 
-typedef struct _PartLDMVolumePrivate PartLDMVolumePrivate;
+typedef struct _LDMVolumePrivate LDMVolumePrivate;
 
-typedef struct _PartLDMVolume PartLDMVolume;
-struct _PartLDMVolume
+typedef struct _LDMVolume LDMVolume;
+struct _LDMVolume
 {
     GObject parent;
-    PartLDMVolumePrivate *priv;
+    LDMVolumePrivate *priv;
 };
 
-typedef struct _PartLDMVolumeClass PartLDMVolumeClass;
-struct _PartLDMVolumeClass
+typedef struct _LDMVolumeClass LDMVolumeClass;
+struct _LDMVolumeClass
 {
     GObjectClass parent_class;
 };
 
-/* PartLDMComponentType */
+/* LDMComponentType */
 
 typedef enum {
-    PART_LDM_COMPONENT_TYPE_STRIPED = 0x1,
-    PART_LDM_COMPONENT_TYPE_SPANNED = 0x2,
-    PART_LDM_COMPONENT_TYPE_RAID    = 0x3
-} PartLDMComponentType;
+    LDM_COMPONENT_TYPE_STRIPED = 0x1,
+    LDM_COMPONENT_TYPE_SPANNED = 0x2,
+    LDM_COMPONENT_TYPE_RAID    = 0x3
+} LDMComponentType;
 
-#define PART_TYPE_LDM_COMPONENT_TYPE (part_ldm_component_type_get_type())
+#define LDM_TYPE_COMPONENT_TYPE (ldm_component_type_get_type())
 
-GType part_ldm_component_type_get_type(void);
+GType ldm_component_type_get_type(void);
 
-/* PartLDMComponent */
+/* LDMComponent */
 
-#define PART_TYPE_LDM_COMPONENT            (part_ldm_component_get_type())
-#define PART_LDM_COMPONENT(obj)            (G_TYPE_CHECK_INSTANCE_CAST \
-        ((obj), PART_TYPE_LDM_COMPONENT, PartLDMComponent))
-#define PART_LDM_COMPONENT_CLASS(klass)    (G_TYPE_CHECK_CLASS_CAST \
-        ((klass), PART_TYPE_LDM_COMPONENT, PartLDMComponentClass))
-#define PART_IS_LDM_COMPONENT(obj)         (G_TYPE_CHECK_INSTANCE_TYPE \
-        ((obj), PART_TYPE_LDM_COMPONENT))
-#define PART_IS_LDM_COMPONENT_CLASS(klass) (G_TYPE_CHECK_CLASS_TYPE \
-        ((klass), PART_TYPE_LDM_COMPONENT))
-#define PART_LDM_COMPONENT_GET_CLASS(obj)  (G_TYPE_INSTANCE_GET_CLASS \
-        ((obj), PART_TYPE_LDM_COMPONENT, PartLDMComponentClass))
+#define LDM_TYPE_COMPONENT            (ldm_component_get_type())
+#define LDM_COMPONENT(obj)            (G_TYPE_CHECK_INSTANCE_CAST \
+        ((obj), LDM_TYPE_COMPONENT, LDMComponent))
+#define LDM_COMPONENT_CLASS(klass)    (G_TYPE_CHECK_CLASS_CAST \
+        ((klass), LDM_TYPE_COMPONENT, LDMComponentClass))
+#define LDM_IS_COMPONENT(obj)         (G_TYPE_CHECK_INSTANCE_TYPE \
+        ((obj), LDM_TYPE_COMPONENT))
+#define LDM_IS_COMPONENT_CLASS(klass) (G_TYPE_CHECK_CLASS_TYPE \
+        ((klass), LDM_TYPE_COMPONENT))
+#define LDM_COMPONENT_GET_CLASS(obj)  (G_TYPE_INSTANCE_GET_CLASS \
+        ((obj), LDM_TYPE_COMPONENT, LDMComponentClass))
 
-typedef struct _PartLDMComponentPrivate PartLDMComponentPrivate;
+typedef struct _LDMComponentPrivate LDMComponentPrivate;
 
-typedef struct _PartLDMComponent PartLDMComponent;
-struct _PartLDMComponent
+typedef struct _LDMComponent LDMComponent;
+struct _LDMComponent
 {
     GObject parent;
-    PartLDMComponentPrivate *priv;
+    LDMComponentPrivate *priv;
 };
 
-typedef struct _PartLDMComponentClass PartLDMComponentClass;
-struct _PartLDMComponentClass
+typedef struct _LDMComponentClass LDMComponentClass;
+struct _LDMComponentClass
 {
     GObjectClass parent_class;
 };
 
-/* PartLDMPartition */
+/* LDMPartition */
 
-#define PART_TYPE_LDM_PARTITION            (part_ldm_partition_get_type())
-#define PART_LDM_PARTITION(obj)            (G_TYPE_CHECK_INSTANCE_CAST \
-        ((obj), PART_TYPE_LDM_PARTITION, PartLDMPartition))
-#define PART_LDM_PARTITION_CLASS(klass)    (G_TYPE_CHECK_CLASS_CAST \
-        ((klass), PART_TYPE_LDM_PARTITION, PartLDMPartitionClass))
-#define PART_IS_LDM_PARTITION(obj)         (G_TYPE_CHECK_INSTANCE_TYPE \
-        ((obj), PART_TYPE_LDM_PARTITION))
-#define PART_IS_LDM_PARTITION_CLASS(klass) (G_TYPE_CHECK_CLASS_TYPE \
-        ((klass), PART_TYPE_LDM_PARTITION))
-#define PART_LDM_PARTITION_GET_CLASS(obj)  (G_TYPE_INSTANCE_GET_CLASS \
-        ((obj), PART_TYPE_LDM_PARTITION, PartLDMPartitionClass))
+#define LDM_TYPE_PARTITION            (ldm_partition_get_type())
+#define LDM_PARTITION(obj)            (G_TYPE_CHECK_INSTANCE_CAST \
+        ((obj), LDM_TYPE_PARTITION, LDMPartition))
+#define LDM_PARTITION_CLASS(klass)    (G_TYPE_CHECK_CLASS_CAST \
+        ((klass), LDM_TYPE_PARTITION, LDMPartitionClass))
+#define LDM_IS_PARTITION(obj)         (G_TYPE_CHECK_INSTANCE_TYPE \
+        ((obj), LDM_TYPE_PARTITION))
+#define LDM_IS_PARTITION_CLASS(klass) (G_TYPE_CHECK_CLASS_TYPE \
+        ((klass), LDM_TYPE_PARTITION))
+#define LDM_PARTITION_GET_CLASS(obj)  (G_TYPE_INSTANCE_GET_CLASS \
+        ((obj), LDM_TYPE_PARTITION, LDMPartitionClass))
 
-typedef struct _PartLDMPartitionPrivate PartLDMPartitionPrivate;
+typedef struct _LDMPartitionPrivate LDMPartitionPrivate;
 
-typedef struct _PartLDMPartition PartLDMPartition;
-struct _PartLDMPartition
+typedef struct _LDMPartition LDMPartition;
+struct _LDMPartition
 {
     GObject parent;
-    PartLDMPartitionPrivate *priv;
+    LDMPartitionPrivate *priv;
 };
 
-typedef struct _PartLDMPartitionClass PartLDMPartitionClass;
-struct _PartLDMPartitionClass
+typedef struct _LDMPartitionClass LDMPartitionClass;
+struct _LDMPartitionClass
 {
     GObjectClass parent_class;
 };
 
-/* PartLDMDisk */
+/* LDMDisk */
 
-#define PART_TYPE_LDM_DISK            (part_ldm_disk_get_type())
-#define PART_LDM_DISK(obj)            (G_TYPE_CHECK_INSTANCE_CAST \
-        ((obj), PART_TYPE_LDM_DISK, PartLDMDisk))
-#define PART_LDM_DISK_CLASS(klass)    (G_TYPE_CHECK_CLASS_CAST \
-        ((klass), PART_TYPE_LDM_DISK, PartLDMDiskClass))
-#define PART_IS_LDM_DISK(obj)         (G_TYPE_CHECK_INSTANCE_TYPE \
-        ((obj), PART_TYPE_LDM_DISK))
-#define PART_IS_LDM_DISK_CLASS(klass) (G_TYPE_CHECK_CLASS_TYPE \
-        ((klass), PART_TYPE_LDM_DISK))
-#define PART_LDM_DISK_GET_CLASS(obj)  (G_TYPE_INSTANCE_GET_CLASS \
-        ((obj), PART_TYPE_LDM_DISK, PartLDMDiskClass))
+#define LDM_TYPE_DISK            (ldm_disk_get_type())
+#define LDM_DISK(obj)            (G_TYPE_CHECK_INSTANCE_CAST \
+        ((obj), LDM_TYPE_DISK, LDMDisk))
+#define LDM_DISK_CLASS(klass)    (G_TYPE_CHECK_CLASS_CAST \
+        ((klass), LDM_TYPE_DISK, LDMDiskClass))
+#define LDM_IS_DISK(obj)         (G_TYPE_CHECK_INSTANCE_TYPE \
+        ((obj), LDM_TYPE_DISK))
+#define LDM_IS_DISK_CLASS(klass) (G_TYPE_CHECK_CLASS_TYPE \
+        ((klass), LDM_TYPE_DISK))
+#define LDM_DISK_GET_CLASS(obj)  (G_TYPE_INSTANCE_GET_CLASS \
+        ((obj), LDM_TYPE_DISK, LDMDiskClass))
 
-typedef struct _PartLDMDiskPrivate PartLDMDiskPrivate;
+typedef struct _LDMDiskPrivate LDMDiskPrivate;
 
-typedef struct _PartLDMDisk PartLDMDisk;
-struct _PartLDMDisk
+typedef struct _LDMDisk LDMDisk;
+struct _LDMDisk
 {
     GObject parent;
-    PartLDMDiskPrivate *priv;
+    LDMDiskPrivate *priv;
 };
 
-typedef struct _PartLDMDiskClass PartLDMDiskClass;
-struct _PartLDMDiskClass
+typedef struct _LDMDiskClass LDMDiskClass;
+struct _LDMDiskClass
 {
     GObjectClass parent_class;
 };
 
-/* PartLDMDMTable */
+/* LDMDMTable */
 
-#define PART_TYPE_LDM_DM_TABLE            (part_ldm_dm_table_get_type())
-#define PART_LDM_DM_TABLE(obj)            (G_TYPE_CHECK_INSTANCE_CAST \
-        ((obj), PART_TYPE_LDM_DM_TABLE, PartLDMDMTable))
-#define PART_LDM_DM_TABLE_CLASS(klass)    (G_TYPE_CHECK_CLASS_CAST \
-        ((klass), PART_TYPE_LDM_DM_TABLE, PartLDMDMTable))
-#define PART_IS_LDM_DM_TABLE(obj)         (G_TYPE_CHECK_INSTANCE_TYPE \
-        ((obj), PART_TYPE_LDM_DM_TABLE))
-#define PART_IS_LDM_DM_TABLE_CLASS(klass) (G_TYPE_CHECK_CLASS_TYPE \
-        ((klass), PART_TYPE_LDM_DM_TABLE))
-#define PART_LDM_DM_TABLE_GET_CLASS(obj)  (G_TYPE_INSTANCE_GET_CLASS \
-        ((obj), PART_TYPE_LDM_DM_TABLE, PartLDMDMTableClass))
+#define LDM_TYPE_DM_TABLE            (ldm_dm_table_get_type())
+#define LDM_DM_TABLE(obj)            (G_TYPE_CHECK_INSTANCE_CAST \
+        ((obj), LDM_TYPE_DM_TABLE, LDMDMTable))
+#define LDM_DM_TABLE_CLASS(klass)    (G_TYPE_CHECK_CLASS_CAST \
+        ((klass), LDM_TYPE_DM_TABLE, LDMDMTable))
+#define LDM_IS_DM_TABLE(obj)         (G_TYPE_CHECK_INSTANCE_TYPE \
+        ((obj), LDM_TYPE_DM_TABLE))
+#define LDM_IS_DM_TABLE_CLASS(klass) (G_TYPE_CHECK_CLASS_TYPE \
+        ((klass), LDM_TYPE_DM_TABLE))
+#define LDM_DM_TABLE_GET_CLASS(obj)  (G_TYPE_INSTANCE_GET_CLASS \
+        ((obj), LDM_TYPE_DM_TABLE, LDMDMTableClass))
 
-typedef struct _PartLDMDMTablePrivate PartLDMDMTablePrivate;
+typedef struct _LDMDMTablePrivate LDMDMTablePrivate;
 
-typedef struct _PartLDMDMTable PartLDMDMTable;
-struct _PartLDMDMTable
+typedef struct _LDMDMTable LDMDMTable;
+struct _LDMDMTable
 {
     GObject parent;
-    PartLDMDMTablePrivate *priv;
+    LDMDMTablePrivate *priv;
 };
 
-typedef struct _PartLDMDMTableClass PartLDMDMTableClass;
-struct _PartLDMDMTableClass
+typedef struct _LDMDMTableClass LDMDMTableClass;
+struct _LDMDMTableClass
 {
     GObjectClass parent_class;
 };
 
-GType part_ldm_get_type(void);
-GType part_ldm_disk_group_get_type(void);
+GType ldm_get_type(void);
+GType ldm_disk_group_get_type(void);
 
-PartLDM *part_ldm_new(GError **err);
-gboolean part_ldm_add(PartLDM *o, const gchar *path, GError **err);
-gboolean part_ldm_add_fd(PartLDM *o, int fd, guint secsize, const gchar *path,
+LDM *ldm_new(GError **err);
+gboolean ldm_add(LDM *o, const gchar *path, GError **err);
+gboolean ldm_add_fd(LDM *o, int fd, guint secsize, const gchar *path,
                          GError **err);
 
-void part_ldm_disk_group_dump(PartLDMDiskGroup *o);
+void ldm_disk_group_dump(LDMDiskGroup *o);
 
-GArray *part_ldm_get_disk_groups(PartLDM *o, GError **err);
-GArray *part_ldm_disk_group_get_volumes(PartLDMDiskGroup *o, GError **err);
-GArray *part_ldm_volume_get_components(PartLDMVolume *o, GError **err);
-GArray *part_ldm_component_get_partitions(PartLDMComponent *o, GError **err);
-PartLDMDisk *part_ldm_partition_get_disk(PartLDMPartition *o, GError **err);
+GArray *ldm_get_disk_groups(LDM *o, GError **err);
+GArray *ldm_disk_group_get_volumes(LDMDiskGroup *o, GError **err);
+GArray *ldm_volume_get_components(LDMVolume *o, GError **err);
+GArray *ldm_component_get_partitions(LDMComponent *o, GError **err);
+LDMDisk *ldm_partition_get_disk(LDMPartition *o, GError **err);
 
-GArray *part_ldm_volume_generate_dm_tables(const PartLDMVolume *o,
+GArray *ldm_volume_generate_dm_tables(const LDMVolume *o,
                                            GError **err);
 
 G_END_DECLS
 
-#endif /* LIBPART_LDM_H__ */
+#endif /* LIBLDM_LDM_H__ */

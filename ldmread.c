@@ -15,11 +15,11 @@ int main(int argc, const char *argv[])
     g_type_init();
 
     GError *err = NULL;
-    PartLDM *ldm = part_ldm_new(&err);
+    LDM *ldm = ldm_new(&err);
 
     const char **disk = &argv[1];
     while(*disk) {
-        if (!part_ldm_add(ldm, *disk, &err)) {
+        if (!ldm_add(ldm, *disk, &err)) {
             fprintf(stderr, "Error reading LDM: %s\n", err->message);
             g_object_unref(ldm);
             g_error_free(err);
@@ -29,9 +29,9 @@ int main(int argc, const char *argv[])
         disk++;
     }
 
-    GArray *dgs = part_ldm_get_disk_groups(ldm, &err);
+    GArray *dgs = ldm_get_disk_groups(ldm, &err);
     for (int i = 0; i < dgs->len; i++) {
-        PartLDMDiskGroup * const dg = g_array_index(dgs, PartLDMDiskGroup *, i);
+        LDMDiskGroup * const dg = g_array_index(dgs, LDMDiskGroup *, i);
 
         {
             gchar *guid;
@@ -46,14 +46,14 @@ int main(int argc, const char *argv[])
             g_free(name);
         }
 
-        GArray *vols = part_ldm_disk_group_get_volumes(dg, &err);
+        GArray *vols = ldm_disk_group_get_volumes(dg, &err);
         for (int j = 0; j < vols->len; j++) {
-            PartLDMVolume * const vol =
-                g_array_index(vols, PartLDMVolume *, j);
+            LDMVolume * const vol =
+                g_array_index(vols, LDMVolume *, j);
 
             {
                 gchar *name;
-                PartLDMVolumeType type;
+                LDMVolumeType type;
                 guint64 size;
                 guint32 part_type;
                 gchar *hint;
@@ -63,7 +63,7 @@ int main(int argc, const char *argv[])
                                   "hint", &hint, NULL);
 
                 GEnumValue * const type_v =
-                    g_enum_get_value(g_type_class_peek(PART_TYPE_LDM_VOLUME_TYPE), type);
+                    g_enum_get_value(g_type_class_peek(LDM_TYPE_VOLUME_TYPE), type);
 
                 printf("  Volume: %s\n", name);
                 printf("    Type:      %s\n", type_v->value_nick);
@@ -75,14 +75,14 @@ int main(int argc, const char *argv[])
                 g_free(hint);
             }
 
-            GArray *comps = part_ldm_volume_get_components(vol, &err);
+            GArray *comps = ldm_volume_get_components(vol, &err);
             for (int k = 0; k < comps->len; k++) {
-                PartLDMComponent * const comp =
-                    g_array_index(comps, PartLDMComponent *, k);
+                LDMComponent * const comp =
+                    g_array_index(comps, LDMComponent *, k);
 
                 {
                     gchar *name;
-                    PartLDMComponentType type;
+                    LDMComponentType type;
                     guint64 stripe_size;
                     guint32 n_columns;
 
@@ -91,7 +91,7 @@ int main(int argc, const char *argv[])
                                        "n-columns", &n_columns, NULL);
 
                     GEnumValue * const type_v =
-                        g_enum_get_value(g_type_class_peek(PART_TYPE_LDM_COMPONENT_TYPE), type);
+                        g_enum_get_value(g_type_class_peek(LDM_TYPE_COMPONENT_TYPE), type);
 
                     printf("    Component: %s\n", name);
                     printf("      Type:        %s\n", type_v->value_nick);
@@ -101,10 +101,10 @@ int main(int argc, const char *argv[])
                     g_free(name);
                 }
                 
-                GArray *parts = part_ldm_component_get_partitions(comp, &err);
+                GArray *parts = ldm_component_get_partitions(comp, &err);
                 for (int l = 0; l < parts->len; l++) {
-                    PartLDMPartition * const part =
-                        g_array_index(parts, PartLDMPartition *, l);
+                    LDMPartition * const part =
+                        g_array_index(parts, LDMPartition *, l);
 
                     {
                         gchar *name;
@@ -127,8 +127,8 @@ int main(int argc, const char *argv[])
                         g_free(name);
                     }
 
-                    PartLDMDisk * const disk =
-                        part_ldm_partition_get_disk(part, &err);
+                    LDMDisk * const disk =
+                        ldm_partition_get_disk(part, &err);
 
                     {
                         gchar *name;
@@ -169,9 +169,9 @@ int main(int argc, const char *argv[])
         }
 
         for (int j = 0; j < vols->len; j++) {
-            PartLDMVolume * const vol =
-                g_array_index(vols, PartLDMVolume *, j);
-            GArray *tables = part_ldm_volume_generate_dm_tables(vol, &err);
+            LDMVolume * const vol =
+                g_array_index(vols, LDMVolume *, j);
+            GArray *tables = ldm_volume_generate_dm_tables(vol, &err);
 
             if (tables == NULL) {
                 gchar *name;
@@ -186,8 +186,8 @@ int main(int argc, const char *argv[])
             }
 
             for (int k = 0; k < tables->len; k++) {
-                PartLDMDMTable * const table =
-                    g_array_index(tables, PartLDMDMTable *, k);
+                LDMDMTable * const table =
+                    g_array_index(tables, LDMDMTable *, k);
 
                 gchar *name, *dm;
                 g_object_get(table, "name", &name, "table", &dm, NULL);
