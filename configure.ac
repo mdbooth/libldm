@@ -15,18 +15,24 @@ AC_CONFIG_MACRO_DIR([m4])
 
 # Checks for programs.
 AC_PROG_CC_C99
+AC_PROG_CXX
+AC_PROG_RANLIB
 LT_INIT
 
 # Checks for libraries.
+AC_CHECK_FUNCS([bzero])
+AC_FUNC_MALLOC
 
 # Checks for header files.
-AC_CHECK_HEADERS([fcntl.h unistd.h])
+AC_CHECK_HEADERS([fcntl.h unistd.h sys/ioctl.h])
 
 # Checks for typedefs, structures, and compiler characteristics.
+AC_TYPE_OFF_T
 AC_TYPE_SIZE_T
 AC_TYPE_SSIZE_T
 AC_TYPE_UINT16_T
 AC_TYPE_UINT32_T
+AC_TYPE_UINT64_T
 AC_TYPE_UINT8_T
 
 PKG_CHECK_MODULES([GOBJECT], [gobject-2.0 >= 2.26.0],
