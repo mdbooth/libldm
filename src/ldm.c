@@ -1456,7 +1456,9 @@ _read_privhead(const int fd, const gchar * const path, const guint secsize,
         return _read_privhead_gpt(fd, path, secsize, privhead, err);
 
     default:
-        return TRUE;
+        g_set_error(err, LDM_ERROR, LDM_ERROR_NOT_LDM,
+                    "%s does not contain LDM metadata", path);
+        return FALSE;
     }
 }
 
