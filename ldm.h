@@ -259,6 +259,8 @@ GType part_ldm_disk_group_get_type(void);
 
 PartLDM *part_ldm_new(GError **err);
 gboolean part_ldm_add(PartLDM *o, const gchar *path, GError **err);
+gboolean part_ldm_add_fd(PartLDM *o, int fd, guint secsize, const gchar *path,
+                         GError **err);
 
 void part_ldm_disk_group_dump(PartLDMDiskGroup *o);
 

@@ -1212,14 +1212,13 @@ part_ldm_dm_table_init(PartLDMDMTable * const o)
     bzero(o->priv, sizeof(*o->priv));
 }
 
-#define SECTOR_SIZE (0x200)
-
 static gboolean
 _find_vmdb(const void * const config, const gchar * const path,
-           const struct _ldm_vmdb ** const vmdb, GError ** const err)
+           const guint secsize, const struct _ldm_vmdb ** const vmdb,
+           GError ** const err)
 {
     /* TOCBLOCK starts 2 sectors into config */
-    const struct _ldm_tocblock *tocblock = config + SECTOR_SIZE * 2;
+    const struct _ldm_tocblock *tocblock = config + secsize * 2;
     if (memcmp(tocblock->magic, "TOCBLOCK", 8) != 0) {
         g_set_error(err, LDM_ERROR, PART_LDM_ERROR_INVALID,
                     "Didn't find TOCBLOCK at config offset %lX",
@@ -1232,7 +1231,7 @@ _find_vmdb(const void * const config, const gchar * const path,
     for (int i = 0; i < 2; i++) {
         const struct _ldm_tocblock_bitmap *bitmap = &tocblock->bitmap[i];
         if (strcmp(bitmap->name, "config") == 0) {
-            *vmdb = config + be64toh(tocblock->bitmap[i].start) * SECTOR_SIZE;
+            *vmdb = config + be64toh(tocblock->bitmap[i].start) * secsize;
             break;
         }
     }
@@ -1255,7 +1254,7 @@ _find_vmdb(const void * const config, const gchar * const path,
 
 static gboolean
 _read_config(const int fd, const gchar * const path,
-             const struct _ldm_privhead * const privhead,
+             const guint secsize, const struct _ldm_privhead * const privhead,
              void ** const config, GError ** const err)
 {
     /* Sanity check ldm_config_start and ldm_config_size */
@@ -1276,9 +1275,9 @@ _read_config(const int fd, const gchar * const path,
     }
 
     const uint64_t config_start =
-        be64toh(privhead->ldm_config_start) * SECTOR_SIZE;
+        be64toh(privhead->ldm_config_start) * secsize;
     const uint64_t config_size =
-        be64toh(privhead->ldm_config_size) * SECTOR_SIZE;
+        be64toh(privhead->ldm_config_size) * secsize;
 
     if (config_start > size) {
         g_set_error(err, LDM_ERROR, PART_LDM_ERROR_INVALID,
@@ -1355,11 +1354,11 @@ _read_privhead_off(const int fd, const gchar * const path,
 }
 
 static gboolean
-_read_privhead_mbr(const int fd, const gchar * const path,
+_read_privhead_mbr(const int fd, const gchar * const path, const guint secsize,
                    struct _ldm_privhead * const privhead, GError ** const err)
 {
     /* On an MBR disk, the first PRIVHEAD is in sector 6 */
-    return _read_privhead_off(fd, path, SECTOR_SIZE * 6, privhead, err);
+    return _read_privhead_off(fd, path, secsize * 6, privhead, err);
 }
 
 void _map_gpt_error(const int e, const gchar * const path, GError ** const err)
@@ -1385,13 +1384,13 @@ void _map_gpt_error(const int e, const gchar * const path, GError ** const err)
 }
 
 static gboolean
-_read_privhead_gpt(const int fd, const gchar * const path,
+_read_privhead_gpt(const int fd, const gchar * const path, const guint secsize,
                    struct _ldm_privhead * const privhead, GError ** const err)
 {
     int r;
 
     gpt_handle_t *h;
-    r = gpt_open(fd, &h);
+    r = gpt_open_secsize(fd, secsize, &h);
     if (r < 0) {
         _map_gpt_error(r, path, err);
         return FALSE;
@@ -1418,7 +1417,7 @@ _read_privhead_gpt(const int fd, const gchar * const path,
         if (uuid_compare(pte.type, LDM_METADATA) == 0) {
             /* PRIVHEAD is in the last LBA of the LDM metadata partition */
             gpt_close(h);
-            return _read_privhead_off(fd, path, pte.last_lba * SECTOR_SIZE,
+            return _read_privhead_off(fd, path, pte.last_lba * secsize,
                                        privhead, err);
         }
     }
@@ -1429,7 +1428,7 @@ _read_privhead_gpt(const int fd, const gchar * const path,
 }
 
 static gboolean
-_read_privhead(const int fd, const gchar * const path,
+_read_privhead(const int fd, const gchar * const path, const guint secsize,
                struct _ldm_privhead * const privhead, GError ** const err)
 {
     // Whether the disk is MBR or GPT, we expect to find an MBR at the beginning
@@ -1454,10 +1453,10 @@ _read_privhead(const int fd, const gchar * const path,
 
     switch (mbr.part[0].type) {
     case MBR_PART_WINDOWS_LDM:
-        return _read_privhead_mbr(fd, path, privhead, err);
+        return _read_privhead_mbr(fd, path, secsize, privhead, err);
 
     case MBR_PART_EFI_PROTECTIVE:
-        return _read_privhead_gpt(fd, path, privhead, err);
+        return _read_privhead_gpt(fd, path, secsize, privhead, err);
 
     default:
         return TRUE;
@@ -2091,7 +2090,28 @@ error:
 }
 
 gboolean
-part_ldm_add(PartLDM *o, const gchar * const path, GError ** const err)
+part_ldm_add(PartLDM * const o, const gchar * const path, GError ** const err)
+{
+    const int fd = open(path, O_RDONLY);
+    if (fd == -1) {
+        g_set_error(err, LDM_ERROR, PART_LDM_ERROR_IO,
+                    "Error opening %s for reading: %m", path);
+        return FALSE;
+    }
+
+    int secsize;
+    if (ioctl(fd, BLKSSZGET, &secsize) == -1) {
+        g_warning("Unable to determine sector size of %s. Assuming 512 byte "
+                  "sectors", path);
+        secsize = 512;
+    }
+
+    return part_ldm_add_fd(o, fd, secsize, path, err);
+}
+
+gboolean
+part_ldm_add_fd(PartLDM * const o, const int fd, const guint secsize,
+                const gchar * const path, GError ** const err)
 {
     GArray *disk_groups = o->priv->disk_groups;
 
@@ -2103,19 +2123,12 @@ part_ldm_add(PartLDM *o, const gchar * const path, GError ** const err)
 
     void *config = NULL;
 
-    const int fd = open(path, O_RDONLY);
-    if (fd == -1) {
-        g_set_error(err, LDM_ERROR, PART_LDM_ERROR_IO,
-                    "Error opening %s for reading: %m", path);
-        goto error;
-    }
-
     struct _ldm_privhead privhead;
-    if (!_read_privhead(fd, path, &privhead, err)) goto error;
-    if (!_read_config(fd, path, &privhead, &config, err)) goto error;
+    if (!_read_privhead(fd, path, secsize, &privhead, err)) goto error;
+    if (!_read_config(fd, path, secsize, &privhead, &config, err)) goto error;
 
     const struct _ldm_vmdb *vmdb;
-    if (!_find_vmdb(config, path, &vmdb, err)) goto error;
+    if (!_find_vmdb(config, path, secsize, &vmdb, err)) goto error;
 
     uuid_t disk_guid;
     uuid_t disk_group_guid;
