@@ -1,5 +1,6 @@
 # Build artifacts
-/.deps
+.libs/
+.deps/
 /aclocal.m4
 /autom4te.cache/
 /build-aux/
@@ -8,6 +9,8 @@
 /config.log
 /config.status
 /configure
+/m4
+/libtool
 /stamp-h1
 Makefile
 Makefile.in
@@ -16,9 +19,11 @@ Makefile.in
 /.gdb_history
 
 # Generated binaries
-/partread
-/ldmread
+/test/partread
+/test/ldmread
 *.o
+*.la
+*.lo
 
 # Temporary files
 .*.swp
