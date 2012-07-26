@@ -22,6 +22,9 @@
 
 G_BEGIN_DECLS
 
+#define LDM_ERROR ldm_error_quark()
+GQuark ldm_error_quark(void);
+
 /**
  * LDMError:
  * @LDM_ERROR_INTERNAL: An internal error

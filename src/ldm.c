@@ -180,9 +180,7 @@ _free_pointer(gpointer const data)
 
 /* GLIB error handling */
 
-#define LDM_ERROR (ldm_error_quark())
-
-static GQuark
+GQuark
 ldm_error_quark(void)
 {
     return g_quark_from_static_string("ldm");
