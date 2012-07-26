@@ -65,8 +65,7 @@ int main(int argc, const char *argv[])
 
         GArray *vols = ldm_disk_group_get_volumes(dg, &err);
         for (int j = 0; j < vols->len; j++) {
-            LDMVolume * const vol =
-                g_array_index(vols, LDMVolume *, j);
+            LDMVolume * const vol = g_array_index(vols, LDMVolume *, j);
 
             {
                 gchar *name;
@@ -80,7 +79,8 @@ int main(int argc, const char *argv[])
                                   "hint", &hint, NULL);
 
                 GEnumValue * const type_v =
-                    g_enum_get_value(g_type_class_peek(LDM_TYPE_VOLUME_TYPE), type);
+                    g_enum_get_value(g_type_class_peek(LDM_TYPE_VOLUME_TYPE),
+                                     type);
 
                 printf("  Volume: %s\n", name);
                 printf("    Type:      %s\n", type_v->value_nick);
