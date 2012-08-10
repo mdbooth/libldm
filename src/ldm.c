@@ -32,6 +32,13 @@
 #include "gpt.h"
 #include "ldm.h"
 
+#define UUID_FMT "%02x%02x%02x%02x-%02x%02x-%02x%02x-" \
+                 "%02x%02x-%02x%02x%02x%02x%02x%02x"
+#define UUID_VALS(uuid) (uuid)[0], (uuid)[1], (uuid)[2], (uuid)[3], \
+                        (uuid)[4], (uuid)[5], (uuid)[6], (uuid)[7], \
+                        (uuid)[8], (uuid)[9], (uuid)[10], (uuid)[11], \
+                        (uuid)[12], (uuid)[13], (uuid)[14], (uuid)[15]
+
 /*
  * The layout here is mostly derived from:
  * http://hackipedia.org/Disk%20formats/Partition%20tables/Windows%20NT%20Logical%20Disk%20Manager/html,%20ldmdoc/index.html
@@ -1089,6 +1096,33 @@ _find_vmdb(const void * const config, const gchar * const path,
         return FALSE;
     }
 
+    g_debug("TOCBLOCK: %s\n"
+            "  Sequence1: %lu\n"
+            "  Sequence2: %lu\n"
+            "  Bitmap: %s\n"
+            "    Flags1: %04ho\n"
+            "    Start: %lu\n"
+            "    Size: %lu\n"
+            "    Flags2: %016lo\n"
+            "  Bitmap: %s\n"
+            "    Flags1: %04ho\n"
+            "    Start: %lu\n"
+            "    Size: %lu\n"
+            "    Flags2: %016lo",
+            path,
+            be64toh(tocblock->seq1),
+            be64toh(tocblock->seq2),
+            tocblock->bitmap[0].name,
+            be16toh(tocblock->bitmap[0].flags1),
+            be64toh(tocblock->bitmap[0].start),
+            be64toh(tocblock->bitmap[0].size),
+            be64toh(tocblock->bitmap[0].flags2),
+            tocblock->bitmap[1].name,
+            be16toh(tocblock->bitmap[1].flags1),
+            be64toh(tocblock->bitmap[1].start),
+            be64toh(tocblock->bitmap[1].size),
+            be64toh(tocblock->bitmap[1].flags2));
+
     /* Find the start of the DB */
     *vmdb = NULL;
     for (int i = 0; i < 2; i++) {
@@ -1111,6 +1145,41 @@ _find_vmdb(const void * const config, const gchar * const path,
                     (void *) (*vmdb) - config);
         return FALSE;
     }
+
+    g_debug("VMDB: %s\n"
+            "  VBLK last: %u\n"
+            "  VBLK size: %u\n"
+            "  VBLK first offset: %u\n"
+            "  Version major: %hu\n"
+            "  Version minor: %hu\n"
+            "  Disk group GUID: %s\n"
+            "  Committed sequence: %lu\n"
+            "  Pending sequence: %lu\n"
+            "  Committed volumes: %u\n"
+            "  Committed components: %u\n"
+            "  Committed partitions: %u\n"
+            "  Committed disks: %u\n"
+            "  Pending volumes: %u\n"
+            "  Pending components: %u\n"
+            "  Pending partitions: %u\n"
+            "  Pending disks: %u",
+            path,
+            be32toh((*vmdb)->vblk_last),
+            be32toh((*vmdb)->vblk_size),
+            be32toh((*vmdb)->vblk_first_offset),
+            be16toh((*vmdb)->version_major),
+            be16toh((*vmdb)->version_minor),
+            (*vmdb)->disk_group_guid,
+            be64toh((*vmdb)->committed_seq),
+            be64toh((*vmdb)->pending_seq),
+            be32toh((*vmdb)->n_committed_vblks_vol),
+            be32toh((*vmdb)->n_committed_vblks_comp),
+            be32toh((*vmdb)->n_committed_vblks_part),
+            be32toh((*vmdb)->n_committed_vblks_disk),
+            be32toh((*vmdb)->n_pending_vblks_vol),
+            be32toh((*vmdb)->n_pending_vblks_comp),
+            be32toh((*vmdb)->n_pending_vblks_part),
+            be32toh((*vmdb)->n_pending_vblks_disk));
 
     return TRUE;
 }
@@ -1213,6 +1282,25 @@ _read_privhead_off(const int fd, const gchar * const path,
         return FALSE;
     }
 
+    g_debug("PRIVHEAD: %s\n"
+            "  Version Major: %hu\n"
+            "  Version Minor: %hu\n"
+            "  Disk GUID: %s\n"
+            "  Disk Group GUID: %s\n"
+            "  Logical Disk Start: %lu\n"
+            "  Logical Disk Size: %lu\n"
+            "  LDM Config Start: %lu\n"
+            "  LDM Config Size: %lu",
+            path,
+            be16toh(privhead->version_major),
+            be16toh(privhead->version_minor),
+            privhead->disk_guid,
+            privhead->disk_group_guid,
+            be64toh(privhead->logical_disk_start),
+            be64toh(privhead->logical_disk_size),
+            be64toh(privhead->ldm_config_start),
+            be64toh(privhead->ldm_config_size));
+
     return TRUE;
 }
 
@@ -1220,6 +1308,8 @@ static gboolean
 _read_privhead_mbr(const int fd, const gchar * const path, const guint secsize,
                    struct _privhead * const privhead, GError ** const err)
 {
+    g_debug("Device %s uses MBR", path);
+
     /* On an MBR disk, the first PRIVHEAD is in sector 6 */
     return _read_privhead_off(fd, path, secsize * 6, privhead, err);
 }
@@ -1250,6 +1340,8 @@ static gboolean
 _read_privhead_gpt(const int fd, const gchar * const path, const guint secsize,
                    struct _privhead * const privhead, GError ** const err)
 {
+    g_debug("Device %s uses GPT", path);
+
     int r;
 
     gpt_handle_t *h;
@@ -1541,6 +1633,20 @@ _parse_vblk_comp(const guint8 revision, const guint16 flags,
             return FALSE;
     }
 
+    g_debug("Component:\n"
+            "  ID: %u\n"
+            "  Parent ID: %u\n"
+            "  Type: %u\n"
+            "  Parts: %u\n"
+            "  Chunk Size: %lu\n"
+            "  Columns: %u",
+            comp->id,
+            comp->parent_id,
+            comp->type,
+            comp->n_parts,
+            comp->chunk_size,
+            comp->n_columns);
+
     return TRUE;
 }
 
@@ -1582,6 +1688,23 @@ _parse_vblk_part(const guint8 revision, const guint16 flags,
             return FALSE;
     }
 
+    g_debug("Partition: %s\n"
+            "  ID: %u\n"
+            "  Parent ID: %u\n"
+            "  Disk ID: %u\n"
+            "  Index: %u\n"
+            "  Start: %lu\n"
+            "  Vol Offset: %lu\n"
+            "  Size: %lu",
+            part->name,
+            part->id,
+            part->parent_id,
+            part->disk_id,
+            part->index,
+            part->start,
+            part->vol_offset,
+            part->size);
+
     return TRUE;
 }
 
@@ -1619,6 +1742,13 @@ _parse_vblk_disk(const guint8 revision, const guint16 flags,
         return FALSE;
     }
 
+    g_debug("Disk: %s\n"
+            "  ID: %u\n"
+            "  GUID: " UUID_FMT,
+            disk->name,
+            disk->id,
+            UUID_VALS(disk->guid));
+
     return TRUE;
 }
 
@@ -1638,6 +1768,11 @@ _parse_vblk_disk_group(const guint8 revision, const guint16 flags,
     dg->name = _parse_var_string(&vblk);
 
     /* No need to parse rest of structure */
+
+    g_debug("Disk Group: %s\n"
+            "  ID: %u",
+            dg->name,
+            dg->id);
 
     return TRUE;
 }
