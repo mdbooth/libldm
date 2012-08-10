@@ -282,8 +282,6 @@ gboolean ldm_add(LDM *o, const gchar *path, GError **err);
 gboolean ldm_add_fd(LDM *o, int fd, guint secsize, const gchar *path,
                          GError **err);
 
-void ldm_disk_group_dump(LDMDiskGroup *o);
-
 GArray *ldm_get_disk_groups(LDM *o, GError **err);
 GArray *ldm_disk_group_get_volumes(LDMDiskGroup *o, GError **err);
 GArray *ldm_volume_get_components(LDMVolume *o, GError **err);
