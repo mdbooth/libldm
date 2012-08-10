@@ -62,20 +62,17 @@ GType ldm_error_get_type(void);
 #define LDM_GET_CLASS(obj)  (G_TYPE_INSTANCE_GET_CLASS \
                                         ((obj), LDM_TYPE, LDMClass))
 
-typedef struct _LDMPrivate LDMPrivate;
-
-typedef struct _LDM LDM;
-struct _LDM
+typedef struct _LDM LDMPrivate;
+typedef struct
 {
     GObject parent;
-    LDMPrivate *priv;
-};
+    struct _LDM *priv;
+} LDM;
 
-typedef struct _LDMClass LDMClass;
-struct _LDMClass
+typedef struct
 {
     GObjectClass parent_class;
-};
+} LDMClass;
 
 /* LDMDiskGroup */
 
@@ -91,26 +88,26 @@ struct _LDMClass
 #define LDM_DISK_GROUP_GET_CLASS(obj)  (G_TYPE_INSTANCE_GET_CLASS \
         ((obj), LDM_TYPE_DISK_GROUP, LDMDiskGroupClass))
 
-typedef struct _LDMDiskGroupPrivate LDMDiskGroupPrivate;
-
-typedef struct _LDMDiskGroup LDMDiskGroup;
-struct _LDMDiskGroup
+typedef struct _LDMDiskGroup LDMDiskGroupPrivate;
+typedef struct
 {
     GObject parent;
     LDMDiskGroupPrivate *priv;
-};
+} LDMDiskGroup;
 
-typedef struct _LDMDiskGroupClass LDMDiskGroupClass;
-struct _LDMDiskGroupClass
+typedef struct
 {
     GObjectClass parent_class;
-};
+} LDMDiskGroupClass;
 
 /* LDMVolumeType */
 
 typedef enum {
-    LDM_VOLUME_TYPE_GEN = 0x3,
-    LDM_VOLUME_TYPE_RAID5 = 0x4
+    LDM_VOLUME_TYPE_SIMPLE,
+    LDM_VOLUME_TYPE_SPANNED,
+    LDM_VOLUME_TYPE_STRIPED,
+    LDM_VOLUME_TYPE_MIRRORED,
+    LDM_VOLUME_TYPE_RAID5
 } LDMVolumeType;
 
 #define LDM_TYPE_VOLUME_TYPE (ldm_volume_type_get_type())
@@ -131,61 +128,17 @@ GType ldm_volume_type_get_type(void);
 #define LDM_VOLUME_GET_CLASS(obj)  (G_TYPE_INSTANCE_GET_CLASS \
         ((obj), LDM_TYPE_VOLUME, LDMVolumeClass))
 
-typedef struct _LDMVolumePrivate LDMVolumePrivate;
-
-typedef struct _LDMVolume LDMVolume;
-struct _LDMVolume
+typedef struct _LDMVolume LDMVolumePrivate;
+typedef struct
 {
     GObject parent;
     LDMVolumePrivate *priv;
-};
+} LDMVolume;
 
-typedef struct _LDMVolumeClass LDMVolumeClass;
-struct _LDMVolumeClass
+typedef struct
 {
     GObjectClass parent_class;
-};
-
-/* LDMComponentType */
-
-typedef enum {
-    LDM_COMPONENT_TYPE_STRIPED = 0x1,
-    LDM_COMPONENT_TYPE_SPANNED = 0x2,
-    LDM_COMPONENT_TYPE_RAID    = 0x3
-} LDMComponentType;
-
-#define LDM_TYPE_COMPONENT_TYPE (ldm_component_type_get_type())
-
-GType ldm_component_type_get_type(void);
-
-/* LDMComponent */
-
-#define LDM_TYPE_COMPONENT            (ldm_component_get_type())
-#define LDM_COMPONENT(obj)            (G_TYPE_CHECK_INSTANCE_CAST \
-        ((obj), LDM_TYPE_COMPONENT, LDMComponent))
-#define LDM_COMPONENT_CLASS(klass)    (G_TYPE_CHECK_CLASS_CAST \
-        ((klass), LDM_TYPE_COMPONENT, LDMComponentClass))
-#define LDM_IS_COMPONENT(obj)         (G_TYPE_CHECK_INSTANCE_TYPE \
-        ((obj), LDM_TYPE_COMPONENT))
-#define LDM_IS_COMPONENT_CLASS(klass) (G_TYPE_CHECK_CLASS_TYPE \
-        ((klass), LDM_TYPE_COMPONENT))
-#define LDM_COMPONENT_GET_CLASS(obj)  (G_TYPE_INSTANCE_GET_CLASS \
-        ((obj), LDM_TYPE_COMPONENT, LDMComponentClass))
-
-typedef struct _LDMComponentPrivate LDMComponentPrivate;
-
-typedef struct _LDMComponent LDMComponent;
-struct _LDMComponent
-{
-    GObject parent;
-    LDMComponentPrivate *priv;
-};
-
-typedef struct _LDMComponentClass LDMComponentClass;
-struct _LDMComponentClass
-{
-    GObjectClass parent_class;
-};
+} LDMVolumeClass;
 
 /* LDMPartition */
 
@@ -201,20 +154,17 @@ struct _LDMComponentClass
 #define LDM_PARTITION_GET_CLASS(obj)  (G_TYPE_INSTANCE_GET_CLASS \
         ((obj), LDM_TYPE_PARTITION, LDMPartitionClass))
 
-typedef struct _LDMPartitionPrivate LDMPartitionPrivate;
-
-typedef struct _LDMPartition LDMPartition;
-struct _LDMPartition
+typedef struct _LDMPartition LDMPartitionPrivate;
+typedef struct
 {
     GObject parent;
     LDMPartitionPrivate *priv;
-};
+} LDMPartition;
 
-typedef struct _LDMPartitionClass LDMPartitionClass;
-struct _LDMPartitionClass
+typedef struct
 {
     GObjectClass parent_class;
-};
+} LDMPartitionClass;
 
 /* LDMDisk */
 
@@ -230,20 +180,17 @@ struct _LDMPartitionClass
 #define LDM_DISK_GET_CLASS(obj)  (G_TYPE_INSTANCE_GET_CLASS \
         ((obj), LDM_TYPE_DISK, LDMDiskClass))
 
-typedef struct _LDMDiskPrivate LDMDiskPrivate;
-
-typedef struct _LDMDisk LDMDisk;
-struct _LDMDisk
+typedef struct _LDMDisk LDMDiskPrivate;
+typedef struct
 {
     GObject parent;
     LDMDiskPrivate *priv;
-};
+} LDMDisk;
 
-typedef struct _LDMDiskClass LDMDiskClass;
-struct _LDMDiskClass
+typedef struct
 {
     GObjectClass parent_class;
-};
+} LDMDiskClass;
 
 /* LDMDMTable */
 
@@ -259,14 +206,12 @@ struct _LDMDiskClass
 #define LDM_DM_TABLE_GET_CLASS(obj)  (G_TYPE_INSTANCE_GET_CLASS \
         ((obj), LDM_TYPE_DM_TABLE, LDMDMTableClass))
 
-typedef struct _LDMDMTablePrivate LDMDMTablePrivate;
-
-typedef struct _LDMDMTable LDMDMTable;
-struct _LDMDMTable
+typedef struct _LDMDMTable LDMDMTablePrivate;
+typedef struct
 {
     GObject parent;
     LDMDMTablePrivate *priv;
-};
+} LDMDMTable;
 
 typedef struct _LDMDMTableClass LDMDMTableClass;
 struct _LDMDMTableClass
@@ -284,8 +229,8 @@ gboolean ldm_add_fd(LDM *o, int fd, guint secsize, const gchar *path,
 
 GArray *ldm_get_disk_groups(LDM *o, GError **err);
 GArray *ldm_disk_group_get_volumes(LDMDiskGroup *o, GError **err);
-GArray *ldm_volume_get_components(LDMVolume *o, GError **err);
-GArray *ldm_component_get_partitions(LDMComponent *o, GError **err);
+GArray *ldm_disk_group_get_disks(LDMDiskGroup *o, GError **err);
+GArray *ldm_volume_get_partitions(LDMVolume *o, GError **err);
 LDMDisk *ldm_partition_get_disk(LDMPartition *o, GError **err);
 
 GArray *ldm_volume_generate_dm_tables(const LDMVolume *o,

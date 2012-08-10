@@ -73,116 +73,85 @@ int main(int argc, const char *argv[])
                 guint64 size;
                 guint32 part_type;
                 gchar *hint;
+                guint64 chunk_size;
 
                 g_object_get(vol, "name", &name, "type", &type,
                                   "size", &size, "part-type", &part_type,
-                                  "hint", &hint, NULL);
+                                  "hint", &hint, "chunk-size", &chunk_size,
+                                  NULL);
 
                 GEnumValue * const type_v =
                     g_enum_get_value(g_type_class_peek(LDM_TYPE_VOLUME_TYPE),
                                      type);
 
                 printf("  Volume: %s\n", name);
-                printf("    Type:      %s\n", type_v->value_nick);
-                printf("    Size:      %lu\n", size);
-                printf("    Part Type: %hhu\n", part_type);
-                printf("    Hint:      %s\n", hint);
+                printf("    Type:       %s\n", type_v->value_nick);
+                printf("    Size:       %lu\n", size);
+                printf("    Part Type:  %hhu\n", part_type);
+                printf("    Hint:       %s\n", hint);
+                printf("    Chunk Size: %lu\n", chunk_size);
 
                 g_free(name);
                 g_free(hint);
             }
 
-            GArray *comps = ldm_volume_get_components(vol, &err);
-            for (int k = 0; k < comps->len; k++) {
-                LDMComponent * const comp =
-                    g_array_index(comps, LDMComponent *, k);
+            GArray *parts = ldm_volume_get_partitions(vol, &err);
+            for (int k = 0; k < parts->len; k++) {
+                LDMPartition * const part =
+                    g_array_index(parts, LDMPartition *, k);
 
                 {
                     gchar *name;
-                    LDMComponentType type;
-                    guint64 stripe_size;
-                    guint32 n_columns;
+                    guint64 start;
+                    guint64 size;
+                    guint32 index;
 
-                    g_object_get(comp, "name", &name, "type", &type,
-                                       "stripe-size", &stripe_size,
-                                       "n-columns", &n_columns, NULL);
+                    g_object_get(part, "name", &name, "start", &start,
+                                       "size", &size, NULL);
 
-                    GEnumValue * const type_v =
-                        g_enum_get_value(g_type_class_peek(LDM_TYPE_COMPONENT_TYPE), type);
-
-                    printf("    Component: %s\n", name);
-                    printf("      Type:        %s\n", type_v->value_nick);
-                    printf("      Stripe Size: %lu\n", stripe_size);
-                    printf("      N Columns:   %u\n", n_columns);
+                    printf("    Partition: %s\n", name);
+                    printf("      Start: %lu\n", start);
+                    printf("      Size:  %lu\n", size);
 
                     g_free(name);
                 }
-                
-                GArray *parts = ldm_component_get_partitions(comp, &err);
-                for (int l = 0; l < parts->len; l++) {
-                    LDMPartition * const part =
-                        g_array_index(parts, LDMPartition *, l);
 
-                    {
-                        gchar *name;
-                        guint64 start;
-                        guint64 vol_offset;
-                        guint64 size;
-                        guint32 index;
+                LDMDisk * const disk =
+                    ldm_partition_get_disk(part, &err);
 
-                        g_object_get(part, "name", &name, "start", &start,
-                                           "vol-offset", &vol_offset,
-                                           "size", &size, "index", &index,
-                                           NULL);
+                {
+                    gchar *name;
+                    gchar *guid;
+                    gchar *device;
+                    guint64 data_start;
+                    guint64 data_size;
+                    guint64 metadata_start;
+                    guint64 metadata_size;
 
-                        printf("      Partition: %s\n", name);
-                        printf("        Start:      %lu\n", start);
-                        printf("        Vol Offset: %lu\n", vol_offset);
-                        printf("        Size:       %lu\n", size);
-                        printf("        Index:      %u\n", index);
+                    g_object_get(disk, "name", &name, "guid", &guid,
+                                       "device", &device,
+                                       "data-start", &data_start,
+                                       "data-size", &data_size,
+                                       "metadata-start", &metadata_start,
+                                       "metadata-size", &metadata_size,
+                                       NULL);
 
-                        g_free(name);
-                    }
+                    printf("      Disk: %s\n", name);
+                    printf("        GUID:   %s\n", guid);
+                    printf("        Device: %s\n", device);
+                    printf("        Data Start: %lu\n", data_start);
+                    printf("        Data Size: %lu\n", data_size);
+                    printf("        Metadata Start: %lu\n", metadata_start);
+                    printf("        Metadata Size: %lu\n", metadata_size);
 
-                    LDMDisk * const disk =
-                        ldm_partition_get_disk(part, &err);
-
-                    {
-                        gchar *name;
-                        gchar *guid;
-                        gchar *device;
-                        guint64 data_start;
-                        guint64 data_size;
-                        guint64 metadata_start;
-                        guint64 metadata_size;
-
-                        g_object_get(disk, "name", &name, "guid", &guid,
-                                           "device", &device,
-                                           "data-start", &data_start,
-                                           "data-size", &data_size,
-                                           "metadata-start", &metadata_start,
-                                           "metadata-size", &metadata_size,
-                                           NULL);
-
-                        printf("        Disk: %s\n", name);
-                        printf("          GUID:   %s\n", guid);
-                        printf("          Device: %s\n", device);
-                        printf("          Data Start: %lu\n", data_start);
-                        printf("          Data Size: %lu\n", data_size);
-                        printf("          Metadata Start: %lu\n",
-                               metadata_start);
-                        printf("          Metadata Size: %lu\n", metadata_size);
-
-                        g_free(name);
-                        g_free(guid);
-                        g_free(device);
-                    }
-
-                    g_object_unref(disk);
+                    g_free(name);
+                    g_free(guid);
+                    g_free(device);
                 }
-                g_array_unref(parts);
+
+                g_object_unref(disk);
             }
-            g_array_unref(comps);
+            g_array_unref(parts);
         }
 
         for (int j = 0; j < vols->len; j++) {
