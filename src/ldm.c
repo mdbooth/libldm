@@ -2492,7 +2492,7 @@ _generate_dm_tables_spanned(GArray * const ret,
         }
 
         g_string_append_printf(spanned->table, "%lu %lu linear %s %lu\n",
-                                               pos, pos + part->size,
+                                               pos, part->size,
                                                disk->device,
                                                disk->data_start + part->start);
         pos += part->size;
@@ -2514,9 +2514,9 @@ _generate_dm_tables_striped(GArray * const ret,
     g_string_printf(striped->name, "ldm_%s_%s", vol->dgname, vol->name);
 
     striped->table = g_string_new("");
-    g_string_printf(striped->table, "0 %lu striped %lu %u",
+    g_string_printf(striped->table, "0 %lu striped %u %lu",
                                     vol->size,
-                                    vol->chunk_size, vol->parts->len);
+                                    vol->parts->len, vol->chunk_size);
 
     for (int i = 0; i < vol->parts->len; i++) {
         const LDMPartition * const part_o =
