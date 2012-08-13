@@ -16,7 +16,7 @@ Makefile
 Makefile.in
 
 # Random exclusions
-/.gdb_history
+.gdb_history
 
 # Generated binaries
 /test/partread
