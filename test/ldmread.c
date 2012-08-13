@@ -116,8 +116,7 @@ int main(int argc, const char *argv[])
                     g_free(name);
                 }
 
-                LDMDisk * const disk =
-                    ldm_partition_get_disk(part, &err);
+                LDMDisk * const disk = ldm_partition_get_disk(part, &err);
 
                 {
                     gchar *name;
@@ -153,39 +152,6 @@ int main(int argc, const char *argv[])
             }
             g_array_unref(parts);
         }
-
-        for (int j = 0; j < vols->len; j++) {
-            LDMVolume * const vol =
-                g_array_index(vols, LDMVolume *, j);
-            GArray *tables = ldm_volume_generate_dm_tables(vol, &err);
-
-            if (tables == NULL) {
-                gchar *name;
-                g_object_get(vol, "name", &name, NULL);
-
-                fprintf(stderr, "Error generating tables for volume %s: %s\n",
-                                name, err->message);
-                g_free(name);
-
-                g_error_free(err); err = NULL;
-                continue;
-            }
-
-            for (int k = 0; k < tables->len; k++) {
-                LDMDMTable * const table =
-                    g_array_index(tables, LDMDMTable *, k);
-
-                gchar *name, *dm;
-                g_object_get(table, "name", &name, "table", &dm, NULL);
-
-                printf("Device: %s\n", name);
-                printf("%s", dm);
-
-                g_free(name);
-                g_free(dm);
-            }
-        }
-
         g_array_unref(vols);
     }
     g_array_unref(dgs); dgs = NULL;
