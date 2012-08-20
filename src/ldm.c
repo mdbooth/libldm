@@ -1392,7 +1392,7 @@ _read_privhead(const int fd, const gchar * const path, const guint secsize,
     if (r < 0) {
         switch (-r) {
         case MBR_ERROR_INVALID:
-            g_set_error(err, LDM_ERROR, LDM_ERROR_INVALID,
+            g_set_error(err, LDM_ERROR, LDM_ERROR_NOT_LDM,
                         "Didn't detect a partition table");
             return FALSE;
 
