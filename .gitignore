@@ -21,6 +21,7 @@ Makefile.in
 # Generated binaries
 /test/partread
 /test/ldmread
+/test/ldmtables
 *.o
 *.la
 *.lo
