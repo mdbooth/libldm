@@ -229,6 +229,7 @@ gboolean ldm_add_fd(LDM *o, int fd, guint secsize, const gchar *path,
 
 GArray *ldm_get_disk_groups(LDM *o, GError **err);
 GArray *ldm_disk_group_get_volumes(LDMDiskGroup *o, GError **err);
+GArray *ldm_disk_group_get_partitions(LDMDiskGroup *o, GError **err);
 GArray *ldm_disk_group_get_disks(LDMDiskGroup *o, GError **err);
 GArray *ldm_volume_get_partitions(LDMVolume *o, GError **err);
 LDMDisk *ldm_partition_get_disk(LDMPartition *o, GError **err);

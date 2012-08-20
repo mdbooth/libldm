@@ -2342,6 +2342,13 @@ ldm_disk_group_get_volumes(LDMDiskGroup * const o, GError ** const err)
 }
 
 GArray *
+ldm_disk_group_get_partitions(LDMDiskGroup * const o, GError ** const err)
+{
+    if (o->priv->parts) g_array_ref(o->priv->parts);
+    return o->priv->parts;
+}
+
+GArray *
 ldm_disk_group_get_disks(LDMDiskGroup * const o, GError ** const err)
 {
     if (o->priv->disks) g_array_ref(o->priv->disks);
