@@ -104,7 +104,6 @@ int main(int argc, const char *argv[])
                     gchar *name;
                     guint64 start;
                     guint64 size;
-                    guint32 index;
 
                     g_object_get(part, "name", &name, "start", &start,
                                        "size", &size, NULL);

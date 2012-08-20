@@ -14,15 +14,17 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+AM_CFLAGS = -Wall -Werror
+
 check_PROGRAMS = partread ldmread ldmtables
 
-partread_CFLAGS = -I$(top_srcdir)/src
+partread_CFLAGS = $(AM_CFLAGS) -I$(top_srcdir)/src
 partread_LDADD = $(top_builddir)/src/libldm.la
 
-ldmread_CFLAGS = -I$(top_srcdir)/src $(GOBJECT_CFLAGS)
+ldmread_CFLAGS = $(AM_CFLAGS) -I$(top_srcdir)/src $(GOBJECT_CFLAGS)
 ldmread_LDADD = $(top_builddir)/src/libldm.la
 
-ldmtables_CFLAGS = -I$(top_srcdir)/src $(GOBJECT_CFLAGS)
+ldmtables_CFLAGS = $(AM_CFLAGS) -I$(top_srcdir)/src $(GOBJECT_CFLAGS)
 ldmtables_LDADD = $(top_builddir)/src/libldm.la
 
 2003R2_SIMPLE = \
