@@ -19,6 +19,7 @@ Makefile.in
 .gdb_history
 
 # Generated binaries
+/src/ldmtool
 /test/partread
 /test/ldmread
 /test/ldmtables

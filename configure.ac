@@ -55,6 +55,20 @@ PKG_CHECK_MODULES([GOBJECT], [gobject-2.0 >= 2.26.0],
     ]
 )
 
+PKG_CHECK_MODULES([JSON], [json-glib-1.0 >= 0.14.0],
+    [
+        AC_SUBST([JSON_CFLAGS])
+        AC_SUBST([JSON_LIBS])
+    ]
+)
+
+PKG_CHECK_MODULES([GIO_UNIX], [gio-unix-2.0 >= 2.32.0],
+    [
+        AC_SUBST([GIO_UNIX_CFLAGS])
+        AC_SUBST([GIO_UNIX_LIBS])
+    ]
+)
+
 # Checks for library functions.
 
 AC_CONFIG_FILES([Makefile])
