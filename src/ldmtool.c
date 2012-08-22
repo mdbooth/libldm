@@ -54,14 +54,13 @@ gboolean show(LDM *ldm, gint argc, gchar **argv, JsonBuilder *jb);
 
 typedef struct {
     const char * name;
-    const char * desc;
     const _action_t action;
 } _command_t;
 
 static const _command_t const commands[] = {
-    { "scan", "Scan devices for LDM metadata", scan },
-    { "show", "Show information about an object", show },
-    { NULL, NULL, NULL }
+    { "scan", scan },
+    { "show", show },
+    { NULL }
 };
 
 gboolean
