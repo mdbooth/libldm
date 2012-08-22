@@ -65,16 +65,21 @@ static const _command_t const commands[] = {
 };
 
 gboolean
-do_command(LDM * const ldm, const int argc, char *argv[], gboolean *result,
-           JsonBuilder * const jb)
+do_command(LDM * const ldm, const int argc, char *argv[],
+           GOutputStream * const out,
+           JsonGenerator * const jg, JsonBuilder * const jb)
 {
     const _command_t *i = commands;
     while (i->name) {
         if (g_strcmp0(i->name, argv[0]) == 0) {
-            if (result) {
-                *result = (i->action)(ldm, argc - 1, argv + 1, jb);
-            } else {
-                (void) (i->action)(ldm, argc - 1, argv + 1, jb);
+            if ((i->action)(ldm, argc - 1, argv + 1, jb)) {
+                GError *err = NULL;
+                json_generator_set_root(jg, json_builder_get_root(jb));
+                if (!json_generator_to_stream(jg, out, NULL, &err)) {
+                    g_warning("Error writing JSON output: %s", err->message);
+                    g_error_free(err); err = NULL;
+                }
+                printf("\n");
             }
             return TRUE;
         }
@@ -543,18 +548,7 @@ shell(LDM * const ldm, gchar ** const devices,
         history_len++;
         free(line);
 
-        gboolean success;
-        if (do_command(ldm, argc, argv, &success, jb)) {
-            if (success) {
-                json_generator_set_root(jg, json_builder_get_root(jb));
-                if (!json_generator_to_stream(jg, out, NULL, &err)) {
-                    g_warning("Error writing JSON output: %s", err->message);
-                    g_error_free(err); err = NULL;
-                }
-                json_builder_reset(jb);
-                printf("\n");
-            }
-        } else {
+        if (!do_command(ldm, argc, argv, out, jg, jb)) {
             if (g_strcmp0("quit", argv[0]) == 0 ||
                 g_strcmp0("exit", argv[0]) == 0)
             {
@@ -564,6 +558,7 @@ shell(LDM * const ldm, gchar ** const devices,
 
             printf("Unrecognised command: %s\n", argv[0]);
         }
+        json_builder_reset(jb);
 
         g_strfreev(argv);
     }
@@ -644,21 +639,9 @@ cmdline(LDM * const ldm, gchar **devices,
     if (!_scan(ldm, TRUE, g_strv_length(devices), devices, NULL)) goto error;
 
     JsonBuilder *jb = json_builder_new();
-    gboolean success;
-    if (!do_command(ldm, argc, argv, &success, jb)) {
+    if (!do_command(ldm, argc, argv, out, jg, jb)) {
         g_warning("Unrecognised command: %s", argv[0]);
         goto error;
-    }
-
-    if (success) {
-        GError *err = NULL;
-        json_generator_set_root(jg, json_builder_get_root(jb));
-        if (!json_generator_to_stream(jg, out, NULL, &err)) {
-            g_warning("Error writing JSON output: %s", err->message);
-            g_error_free(err); err = NULL;
-        }
-        json_builder_reset(jb);
-        printf("\n");
     }
 
     if (scanned) g_array_unref(scanned);
