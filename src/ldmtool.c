@@ -137,6 +137,7 @@ _scan(LDM *const ldm, gboolean ignore_errors,
 
             g_free(guid);
         }
+        g_array_unref(dgs);
 
         json_builder_end_array(jb);
     }
@@ -313,7 +314,11 @@ show_volume(LDM *const ldm, const gint argc, gchar ** const argv,
             if (!partitions) {
                 g_warning("Unable to get partitions from volume: %s",
                           err->message);
+
                 g_array_unref(volumes);
+                g_free(name);
+                g_free(hint);
+
                 return FALSE;
             }
             for (int j = 0; j < partitions->len; j++) {
@@ -328,6 +333,7 @@ show_volume(LDM *const ldm, const gint argc, gchar ** const argv,
 
                 g_free(partname);
             }
+            g_array_unref(partitions);
             json_builder_end_array(jb);
 
             json_builder_end_object(jb);
@@ -567,8 +573,6 @@ shell(LDM * const ldm, gchar ** const devices,
         g_strfreev(argv);
     }
 
-    g_object_unref(out);
-    g_object_unref(jg);
     g_object_unref(jb);
 
     if (histfile[0] != '\0') {
@@ -649,10 +653,12 @@ cmdline(LDM * const ldm, gchar **devices,
     }
 
     if (scanned) g_array_unref(scanned);
+    g_object_unref(jb);
     return TRUE;
 
 error:
     if (scanned) g_array_unref(scanned);
+    g_object_unref(jb);
     return FALSE;
 
 }
@@ -696,9 +702,9 @@ main(int argc, char *argv[])
         g_warning("option parsing failed: %s", err->message);
         return 1;
     }
+    g_option_context_free(context);
 
     g_type_init();
-
 
     LDM * const ldm = ldm_new(&err);
 
@@ -727,6 +733,7 @@ main(int argc, char *argv[])
     if (!g_output_stream_close(out, NULL, &err)) {
         g_warning("Error closing output stream: %s", err->message);
     }
+    g_object_unref(out);
 
     return ret;
 }
