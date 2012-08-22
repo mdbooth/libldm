@@ -121,7 +121,11 @@ _scan(LDM *const ldm, gboolean ignore_errors,
     if (jb) {
         json_builder_begin_array(jb);
 
-        const GArray * const dgs = ldm_get_disk_groups(ldm, &err);
+        GArray * const dgs = ldm_get_disk_groups(ldm, &err);
+        if (!dgs) {
+            g_warning("Error listing disk groups: %s", err->message);
+            return FALSE;
+        }
         for (int i = 0; i < dgs->len; i++) {
             LDMDiskGroup * const dg = g_array_index(dgs, LDMDiskGroup *, i);
 
