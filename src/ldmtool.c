@@ -67,9 +67,9 @@ gboolean usage_create(void)
 typedef gboolean (*_action_t) (LDM *ldm, gint argc, gchar **argv,
                                JsonBuilder *jb);
 
-gboolean scan(LDM *ldm, gint argc, gchar **argv, JsonBuilder *jb);
-gboolean show(LDM *ldm, gint argc, gchar **argv, JsonBuilder *jb);
-gboolean create(LDM *ldm, gint argc, gchar **argv, JsonBuilder *jb);
+gboolean ldm_scan(LDM *ldm, gint argc, gchar **argv, JsonBuilder *jb);
+gboolean ldm_show(LDM *ldm, gint argc, gchar **argv, JsonBuilder *jb);
+gboolean ldm_create(LDM *ldm, gint argc, gchar **argv, JsonBuilder *jb);
 
 typedef struct {
     const char * name;
@@ -77,9 +77,9 @@ typedef struct {
 } _command_t;
 
 static const _command_t const commands[] = {
-    { "scan", scan },
-    { "show", show },
-    { "create", create },
+    { "scan", ldm_scan },
+    { "show", ldm_show },
+    { "create", ldm_create },
     { NULL }
 };
 
@@ -165,8 +165,8 @@ _scan(LDM *const ldm, gboolean ignore_errors,
 }
 
 gboolean
-scan(LDM *const ldm, const gint argc, gchar ** const argv,
-     JsonBuilder * const jb)
+ldm_scan(LDM *const ldm, const gint argc, gchar ** const argv,
+         JsonBuilder * const jb)
 {
     return _scan(ldm, FALSE, argc, argv, jb);
 }
@@ -501,8 +501,8 @@ show_disk(LDM *const ldm, const gint argc, gchar ** const argv,
 }
 
 gboolean
-show(LDM *const ldm, const gint argc, gchar ** const argv,
-      JsonBuilder * const jb)
+ldm_show(LDM *const ldm, const gint argc, gchar ** const argv,
+         JsonBuilder * const jb)
 {
     if (argc == 0) return usage_show();
 
@@ -520,8 +520,8 @@ show(LDM *const ldm, const gint argc, gchar ** const argv,
 }
 
 gboolean
-create(LDM *const ldm, const gint argc, gchar ** const argv,
-       JsonBuilder * const jb)
+ldm_create(LDM *const ldm, const gint argc, gchar ** const argv,
+           JsonBuilder * const jb)
 {
     GError *err = NULL;
 
