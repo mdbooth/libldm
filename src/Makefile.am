@@ -27,6 +27,6 @@ libldm_la_LIBADD = -lz -luuid $(GOBJECT_LIBS)
 bin_PROGRAMS = ldmtool
 
 ldmtool_CFLAGS = $(AM_CFLAGS) $(GOBJECT_CFLAGS) $(JSON_CFLAGS) \
-		 $(GIO_UNIX_CFLAGS)
+		 $(GIO_UNIX_CFLAGS) $(DEVMAPPER_CFLAGS)
 ldmtool_LDADD = -lreadline $(builddir)/libldm.la \
-		$(GOBJECT_LIBS) $(JSON_LIBS) $(GIO_UNIX_LIBS)
+		$(GOBJECT_LIBS) $(JSON_LIBS) $(GIO_UNIX_LIBS) $(DEVMAPPER_LIBS)

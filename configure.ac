@@ -69,6 +69,13 @@ PKG_CHECK_MODULES([GIO_UNIX], [gio-unix-2.0 >= 2.32.0],
     ]
 )
 
+PKG_CHECK_MODULES([DEVMAPPER], [devmapper >= 1.0],
+    [
+        AC_SUBST([DEVMAPPER_CFLAGS])
+        AC_SUBST([DEVMAPPER_LIBS])
+    ]
+)
+
 # Checks for library functions.
 
 AC_CONFIG_FILES([Makefile])

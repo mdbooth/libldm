@@ -17,6 +17,7 @@
 
 #include <endian.h>
 #include <fcntl.h>
+#include <libdevmapper.h>
 #include <linux/fs.h>
 #include <stdint.h>
 #include <stdio.h>
@@ -183,6 +184,12 @@ static void
 _free_pointer(gpointer const data)
 {
     g_free(*(gpointer *)data);
+}
+
+static void
+_free_gstring(gpointer const data)
+{
+    g_string_free(*(GString **)data, TRUE);
 }
 
 /* GLIB error handling */
@@ -2635,4 +2642,445 @@ ldm_volume_generate_dm_tables(const LDMVolume * const o,
 error:
     g_array_unref(ret);
     return NULL;
+}
+
+struct dm_target {
+    guint64 start;
+    guint64 size;
+    const gchar * type;
+    GString *params;
+};
+
+gboolean
+_dm_create(const gchar * const name, uint32_t udev_cookie,
+           const guint n_targets, const struct dm_target * const targets,
+           GError ** const err)
+{
+    gboolean r = TRUE;
+
+    struct dm_task * const task = dm_task_create(DM_DEVICE_CREATE);
+    if (!task) {
+        g_set_error(err, LDM_ERROR, LDM_ERROR_INTERNAL,
+                    "dm_task_create(DM_DEVICE_CREATE) failed");
+        return FALSE;
+    }
+
+    if (!dm_task_set_name(task, name)) {
+        g_set_error(err, LDM_ERROR, LDM_ERROR_INTERNAL,
+                    "DM_DEVICE_CREATE: dm_task_set_name(%s) failed", name);
+        r = FALSE; goto out;
+    }
+
+    for (int i = 0; i < n_targets; i++) {
+        const struct dm_target * const target = &targets[i];
+
+        if (!dm_task_add_target(task, target->start, target->size,
+                                      target->type, target->params->str))
+        {
+            g_set_error(err, LDM_ERROR, LDM_ERROR_INTERNAL,
+                        "DM_DEVICE_CREATE: "
+                        "dm_task_add_target(%s, %lu, %lu, %s, %s) failed",
+                        name, target->start, target->size,
+                        target->type, target->params->str);
+            r = FALSE; goto out;
+        }
+    }
+
+    if (!dm_task_set_cookie(task, &udev_cookie, 0)) {
+        g_set_error(err, LDM_ERROR, LDM_ERROR_INTERNAL,
+                    "DM_DEVICE_CREATE: dm_task_set_cookie(%08X) failed",
+                    udev_cookie);
+        r = FALSE; goto out;
+    }
+
+    if (!dm_task_run(task)) {
+        g_set_error(err, LDM_ERROR, LDM_ERROR_INTERNAL,
+                    "DM_DEVICE_CREATE: "
+                    "dm_task_run(%s) failed", name);
+        r = FALSE; goto out;
+    }
+
+out:
+    dm_task_destroy(task);
+    return r;
+}
+
+gboolean
+_dm_remove(const gchar * const name, uint32_t udev_cookie, GError ** const err)
+{
+    gboolean r = TRUE;
+
+    struct dm_task * const task = dm_task_create(DM_DEVICE_REMOVE);
+    if (!task) {
+        g_set_error(err, LDM_ERROR, LDM_ERROR_INTERNAL,
+                    "dm_task_create(DM_DEVICE_REMOVE) failed");
+        r = FALSE; goto out;
+    }
+
+    if (!dm_task_set_name(task, name)) {
+        g_set_error(err, LDM_ERROR, LDM_ERROR_INTERNAL,
+                    "DM_DEVICE_REMOVE: dm_task_set_name(%s) failed", name);
+        r = FALSE; goto out;
+    }
+
+    if (udev_cookie && !dm_task_set_cookie(task, &udev_cookie, 0)) {
+        g_set_error(err, LDM_ERROR, LDM_ERROR_INTERNAL,
+                    "DM_DEVICE_REMOVE: dm_task_set_cookie(%08X) failed",
+                    udev_cookie);
+        r = FALSE; goto out;
+    }
+
+    if (!dm_task_run(task)) {
+        g_set_error(err, LDM_ERROR, LDM_ERROR_INTERNAL,
+                    "DM_DEVICE_REMOVE: dm_task_run(%s) failed", name);
+        r = FALSE; goto out;
+    }
+
+out:
+    dm_task_destroy(task);
+    return r;
+}
+
+static GString *
+_dm_create_part(const LDMPartitionPrivate * const part, uint32_t cookie,
+                GError ** const err)
+{
+    const LDMDiskPrivate * const disk = part->disk->priv;
+
+    if (!disk->device) {
+        g_set_error(err, LDM_ERROR, LDM_ERROR_MISSING_DISK,
+                    "Disk %s required by partition %s is missing",
+                    disk->name, part->name);
+        return NULL;
+    }
+
+    struct dm_target target;
+    target.start = 0;
+    target.size = part->size;
+    target.type = "linear";
+    target.params = g_string_new("");
+    g_string_printf(target.params, "%s %lu",
+                    disk->device, disk->data_start + part->start);
+
+    /* Ensure we sanitise table names */
+    char * dgname_esc =
+        g_uri_escape_string(disk->dgname,
+                            G_URI_RESERVED_CHARS_ALLOWED_IN_PATH_ELEMENT,
+                            FALSE);
+    char * partname_esc =
+        g_uri_escape_string(part->name,
+                            G_URI_RESERVED_CHARS_ALLOWED_IN_PATH_ELEMENT,
+                            FALSE);
+
+    GString *name = g_string_new("");
+    g_string_printf(name, "ldm_part_%s_%s", dgname_esc, partname_esc);
+    g_free(dgname_esc);
+    g_free(partname_esc);
+
+    if (!_dm_create(name->str, cookie, 1, &target, err)) {
+        g_string_free(name, TRUE);
+        name = NULL;
+    }
+
+    g_string_free(target.params, TRUE);
+    return name;
+}
+
+static GString *
+_dm_create_spanned(const LDMVolumePrivate * const vol, GError ** const err)
+{
+    static GString *name = NULL;
+    int i = 0;
+    struct dm_target *targets = g_malloc(sizeof(*targets) * vol->parts->len);
+
+    uint64_t pos = 0;
+    for (; i < vol->parts->len; i++) {
+        const LDMPartition * const part_o =
+            g_array_index(vol->parts, const LDMPartition *, i);
+        const LDMPartitionPrivate * const part = part_o->priv;
+
+        const LDMDiskPrivate * const disk = part->disk->priv;
+        if (!disk->device) {
+            g_set_error(err, LDM_ERROR, LDM_ERROR_MISSING_DISK,
+                        "Disk %s required by spanned volume %s is missing",
+                        disk->name, vol->name);
+            goto out;
+        }
+
+        /* Sanity check: current position from adding up sizes of partitions
+         * should equal the volume offset of the partition */
+        if (pos != part->vol_offset) {
+            g_set_error(err, LDM_ERROR, LDM_ERROR_INVALID,
+                        "Partition volume offset does not match sizes of "
+                        "preceding partitions");
+            goto out;
+        }
+
+        struct dm_target *target = &targets[i];
+        target->start = pos;
+        target->size = part->size;
+        target->type = "linear";
+        target->params = g_string_new("");
+        g_string_append_printf(target->params, "%s %lu",
+                                               disk->device,
+                                               disk->data_start + part->start);
+        pos += part->size;
+    }
+
+    uint32_t cookie;
+    if (!dm_udev_create_cookie(&cookie)) goto out;
+
+    name = g_string_new("");
+    g_string_printf(name, "ldm_vol_%s_%s", vol->dgname, vol->name);
+
+    if (!_dm_create(name->str, cookie, vol->parts->len, targets, err)) {
+        g_string_free(name, TRUE);
+        name = NULL;
+    }
+
+    dm_udev_wait(cookie);
+
+out:
+    for (; i > 0; i--) {
+        struct dm_target *target = &targets[i-1];
+        g_string_free(target->params, TRUE);
+    }
+    g_free(targets);
+
+    return name;
+}
+
+static GString *
+_dm_create_striped(const LDMVolumePrivate * const vol, GError ** const err)
+{
+    static GString *name = NULL;
+    struct dm_target target;
+
+    target.start = 0;
+    target.size = vol->size;
+    target.type = "striped";
+    target.params = g_string_new("");
+    g_string_printf(target.params, "%u %lu", vol->parts->len, vol->chunk_size);
+
+    for (int i = 0; i < vol->parts->len; i++) {
+        const LDMPartition * const part_o =
+            g_array_index(vol->parts, const LDMPartition *, i);
+        const LDMPartitionPrivate * const part = part_o->priv;
+
+        const LDMDiskPrivate * const disk = part->disk->priv;
+        if (!disk->device) {
+            g_set_error(err, LDM_ERROR, LDM_ERROR_MISSING_DISK,
+                        "Disk %s required by striped volume %s is missing",
+                        disk->name, vol->name);
+            goto out;
+        }
+
+        g_string_append_printf(target.params, " %s %lu",
+                                               disk->device,
+                                               disk->data_start + part->start);
+    }
+
+    uint32_t cookie;
+    if (!dm_udev_create_cookie(&cookie)) goto out;
+
+    name = g_string_new("");
+    g_string_printf(name, "ldm_vol_%s_%s", vol->dgname, vol->name);
+
+    if (!_dm_create(name->str, cookie, 1, &target, err)) {
+        g_string_free(name, TRUE);
+        name = NULL;
+    }
+
+    dm_udev_wait(cookie);
+
+out:
+    g_string_free(target.params, TRUE);
+
+    return name;
+}
+
+static GString *
+_dm_create_mirrored(const LDMVolumePrivate * const vol, GError ** const err)
+{
+    GString *name = NULL;
+    struct dm_target target;
+
+    target.start = 0;
+    target.size = vol->size;
+    target.type = "raid";
+    target.params = g_string_new("");
+    g_string_printf(target.params, "raid1 1 128 %u", vol->parts->len);
+
+    GArray * devices = g_array_new(FALSE, FALSE, sizeof(GString *));
+    g_array_set_clear_func(devices, _free_gstring);
+
+    uint32_t cookie;
+    if (!dm_udev_create_cookie(&cookie)) goto out;
+
+    int found = 0;
+    for (int i = 0; i < vol->parts->len; i++) {
+        const LDMPartition * const part_o =
+            g_array_index(vol->parts, const LDMPartition *, i);
+        const LDMPartitionPrivate * const part = part_o->priv;
+
+        GString * chunk = _dm_create_part(part, cookie, err);
+        if (chunk == NULL) {
+            if (err && (*err)->code == LDM_ERROR_MISSING_DISK) {
+                g_warning((*err)->message);
+                g_error_free(*err); *err = NULL;
+                g_string_append(target.params, " - -");
+                continue;
+            } else {
+                goto out;
+            }
+        }
+
+        found++;
+        g_array_append_val(devices, chunk);
+        g_string_append_printf(target.params, " - /dev/mapper/%s", chunk->str);
+    }
+
+    if (found == 0) {
+        g_set_error(err, LDM_ERROR, LDM_ERROR_MISSING_DISK,
+                    "Mirrored volume is missing all partitions");
+        return FALSE;
+    }
+
+    /* Wait until all partitions have been created */
+    dm_udev_wait(cookie);
+    if (!dm_udev_create_cookie(&cookie)) goto out;
+
+    name = g_string_new("");
+    g_string_printf(name, "ldm_vol_%s_%s", vol->dgname, vol->name);
+
+    if (!_dm_create(name->str, cookie, 1, &target, err)) {
+        g_string_free(name, TRUE);
+        name = NULL;
+    }
+
+    dm_udev_wait(cookie);
+
+    g_array_unref(devices); devices = NULL;
+
+out:
+    if (devices) {
+        GError *cleanup_err = NULL;
+        for (int i = devices->len; i > 0; i--) {
+            GString *device = g_array_index(devices, GString *, i - 1);
+            if (!_dm_remove(device->str, 0, &cleanup_err)) {
+                g_warning(cleanup_err->message);
+                g_error_free(cleanup_err); cleanup_err = NULL;
+            }
+        }
+        g_array_unref(devices); devices = NULL;
+    }
+
+    g_string_free(target.params, TRUE);
+    return name;
+}
+
+static GString *
+_dm_create_raid5(const LDMVolumePrivate * const vol, GError ** const err)
+{
+    GString *name = NULL;
+    struct dm_target target;
+
+    target.start = 0;
+    target.size = vol->size;
+    target.type = "raid";
+    target.params = g_string_new("");
+    g_string_append_printf(target.params, "raid5_ls 1 %lu %u",
+                           vol->chunk_size, vol->parts->len);
+
+    GArray * devices = g_array_new(FALSE, FALSE, sizeof(GString *));
+    g_array_set_clear_func(devices, _free_gstring);
+
+    uint32_t cookie;
+    if (!dm_udev_create_cookie(&cookie)) goto out;
+
+    int found = 0;
+    for (int i = 0; i < vol->parts->len; i++) {
+        const LDMPartition * const part_o =
+            g_array_index(vol->parts, const LDMPartition *, i);
+        const LDMPartitionPrivate * const part = part_o->priv;
+
+        GString * chunk = _dm_create_part(part, cookie, err);
+        if (chunk == NULL) {
+            if (err && (*err)->code == LDM_ERROR_MISSING_DISK) {
+                g_warning((*err)->message);
+                g_error_free(*err); *err = NULL;
+                g_string_append(target.params, " - -");
+                continue;
+            } else {
+                goto out;
+            }
+        }
+
+        found++;
+        g_array_append_val(devices, chunk);
+        g_string_append_printf(target.params, " - /dev/mapper/%s", chunk->str);
+    }
+
+    if (found < vol->parts->len - 1) {
+        g_set_error(err, LDM_ERROR, LDM_ERROR_MISSING_DISK,
+                    "RAID5 volume is missing more than 1 component");
+        goto out;
+    }
+
+    /* Wait until all partitions have been created */
+    dm_udev_wait(cookie);
+    if (!dm_udev_create_cookie(&cookie)) goto out;
+
+    name = g_string_new("");
+    g_string_printf(name, "ldm_vol_%s_%s", vol->dgname, vol->name);
+
+    if (!_dm_create(name->str, cookie, 1, &target, err)) {
+        g_string_free(name, TRUE); name = NULL;
+        goto out;
+    }
+
+    dm_udev_wait(cookie);
+
+    g_array_unref(devices); devices = NULL;
+
+out:
+    if (devices) {
+        GError *cleanup_err = NULL;
+        for (int i = devices->len; i > 0; i--) {
+            GString *device = g_array_index(devices, GString *, i - 1);
+            if (!_dm_remove(device->str, 0, &cleanup_err)) {
+                g_warning(cleanup_err->message);
+                g_error_free(cleanup_err); cleanup_err = NULL;
+            }
+        }
+        g_array_unref(devices); devices = NULL;
+    }
+
+    g_string_free(target.params, TRUE);
+    return name;
+}
+
+GString *
+ldm_volume_dm_create(const LDMVolume * const o, GError ** const err)
+{
+    const LDMVolumePrivate * const vol = o->priv;
+
+    switch (vol->type) {
+    case LDM_VOLUME_TYPE_SIMPLE:
+    case LDM_VOLUME_TYPE_SPANNED:
+        return _dm_create_spanned(vol, err);
+
+    case LDM_VOLUME_TYPE_STRIPED:
+        return _dm_create_striped(vol, err);
+
+    case LDM_VOLUME_TYPE_MIRRORED:
+        return _dm_create_mirrored(vol, err);
+
+    case LDM_VOLUME_TYPE_RAID5:
+        return _dm_create_raid5(vol, err);
+
+    default:
+        /* Should be impossible */
+        g_error("Unexpected volume type: %u", vol->type);
+    }
 }
