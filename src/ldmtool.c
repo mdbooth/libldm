@@ -111,8 +111,7 @@ _scan(LDM *const ldm, gboolean ignore_errors,
                 ) {
                     g_warning("Error scanning %s: %s", path, err->message);
                 }
-                g_error_free(err);
-                err = NULL;
+                g_error_free(err); err = NULL;
             }
         }
     }
