@@ -20,6 +20,7 @@
 #include <dirent.h>
 #include <errno.h>
 #include <fcntl.h>
+#include <libdevmapper.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -44,13 +45,31 @@
     "  show partition <disk group guid> <name>\n" \
     "  show disk <disk group guid> <name>"
 
-#define USAGE_ALL USAGE_SCAN "\n" USAGE_SHOW
+#define USAGE_CREATE \
+    "  create all\n" \
+    "  create volume <disk group guid> <name>"
+
+#define USAGE_ALL USAGE_SCAN "\n" USAGE_SHOW "\n" USAGE_CREATE
+
+gboolean
+usage_show(void)
+{
+    g_warning(USAGE_SHOW);
+    return FALSE;
+}
+
+gboolean usage_create(void)
+{
+    g_warning(USAGE_CREATE);
+    return FALSE;
+}
 
 typedef gboolean (*_action_t) (LDM *ldm, gint argc, gchar **argv,
                                JsonBuilder *jb);
 
 gboolean scan(LDM *ldm, gint argc, gchar **argv, JsonBuilder *jb);
 gboolean show(LDM *ldm, gint argc, gchar **argv, JsonBuilder *jb);
+gboolean create(LDM *ldm, gint argc, gchar **argv, JsonBuilder *jb);
 
 typedef struct {
     const char * name;
@@ -60,6 +79,7 @@ typedef struct {
 static const _command_t const commands[] = {
     { "scan", scan },
     { "show", show },
+    { "create", create },
     { NULL }
 };
 
@@ -166,13 +186,6 @@ show_json_array(JsonBuilder * const jb, const GArray * const array,
         g_free(value);
     }
     json_builder_end_array(jb);
-}
-
-gboolean
-usage_show(void)
-{
-    g_warning(USAGE_SHOW);
-    return FALSE;
 }
 
 LDMDiskGroup *
@@ -504,6 +517,97 @@ show(LDM *const ldm, const gint argc, gchar ** const argv,
     }
 
     return usage_show();
+}
+
+gboolean
+create(LDM *const ldm, const gint argc, gchar ** const argv,
+       JsonBuilder * const jb)
+{
+    GError *err = NULL;
+
+    json_builder_begin_array(jb);
+
+    if (argc == 1) {
+        if (g_strcmp0(argv[0], "all") != 0) return usage_create();
+
+        GArray *dgs = ldm_get_disk_groups(ldm, &err);
+        for (int i = 0; i < dgs->len; i++) {
+            LDMDiskGroup * const dg = g_array_index(dgs, LDMDiskGroup *, i);
+
+            GArray *volumes = ldm_disk_group_get_volumes(dg, &err);
+            for (int j = 0; j < volumes->len; j++) {
+                LDMVolume * const vol = g_array_index(volumes, LDMVolume *, j);
+
+                GString * const device = ldm_volume_dm_create(vol, &err);
+                if (device) {
+                    json_builder_add_string_value(jb, device->str);
+                    g_string_free(device, TRUE);
+                } else {
+                    gchar *vol_name;
+                    g_object_get(vol, "name", &vol_name, NULL);
+
+                    gchar *dg_guid;
+                    g_object_get(dg, "guid", &dg_guid, NULL);
+
+                    g_warning("Unable to create volume %s in disk group %s: %s",
+                              vol_name, dg_guid, err->message);
+                              
+                    g_free(vol_name);
+                    g_free(dg_guid);
+                    
+                    g_error_free(err); err = NULL;
+                }
+            }
+        }
+        g_array_unref(dgs);
+    }
+
+    else if (argc == 3) {
+        if (g_strcmp0(argv[0], "volume") != 0) return usage_create();
+
+        LDMDiskGroup * const dg = find_diskgroup(ldm, argv[1]);
+        if (!dg) return FALSE;
+
+        GArray * const volumes = ldm_disk_group_get_volumes(dg, &err);
+        LDMVolume *vol = NULL;
+        for (int i = 0; i < volumes->len; i++) {
+            LDMVolume * const o = g_array_index(volumes, LDMVolume *, i);
+
+            gchar *name;
+            g_object_get(o, "name", &name, NULL);
+            if (g_strcmp0(name, argv[2]) == 0) vol = o;
+            g_free(name);
+
+            if (vol) break;
+        }
+        g_object_unref(dg);
+        g_array_unref(volumes);
+
+        if (!vol) {
+            g_warning("Disk group %s doesn't contain volume %s",
+                      argv[1], argv[2]);
+            return FALSE;
+        }
+
+        GString * const device = ldm_volume_dm_create(vol, &err);
+        if (device) {
+            json_builder_add_string_value(jb, device->str);
+            g_string_free(device, TRUE);
+        } else {
+            g_warning("Unable to create volume %s in disk group %s: %s",
+                      argv[2], argv[1], err->message);
+            g_error_free(err); err = NULL;
+            return FALSE;
+        }
+    }
+
+    else {
+        return usage_create();
+    }
+
+    json_builder_end_array(jb);
+
+    return TRUE;
 }
 
 gboolean
