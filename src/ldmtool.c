@@ -267,7 +267,7 @@ show_volume(LDM *const ldm, const gint argc, gchar ** const argv,
     LDMDiskGroup *dg = find_diskgroup(ldm, argv[0]);
     if (!dg) return FALSE;
 
-    GError *err;
+    GError *err = NULL;
 
     GArray * const volumes = ldm_disk_group_get_volumes(dg, &err);
     g_object_unref(dg);
@@ -357,7 +357,7 @@ show_partition(LDM *const ldm, const gint argc, gchar ** const argv,
     LDMDiskGroup *dg = find_diskgroup(ldm, argv[0]);
     if (!dg) return FALSE;
 
-    GError *err;
+    GError *err = NULL;
 
     GArray * const parts = ldm_disk_group_get_partitions(dg, &err);
     g_object_unref(dg);
