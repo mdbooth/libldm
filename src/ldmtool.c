@@ -75,8 +75,9 @@ do_command(LDM * const ldm, const int argc, char *argv[],
                 GError *err = NULL;
                 json_generator_set_root(jg, json_builder_get_root(jb));
                 if (!json_generator_to_stream(jg, out, NULL, &err)) {
-                    g_warning("Error writing JSON output: %s", err->message);
-                    g_error_free(err); err = NULL;
+                    g_warning("Error writing JSON output: %s",
+                              err ? err->message : "(no detail)");
+                    if (err) { g_error_free(err); err = NULL; }
                 }
                 printf("\n");
             }
