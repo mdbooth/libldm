@@ -237,6 +237,7 @@ LDMDisk *ldm_partition_get_disk(LDMPartition *o, GError **err);
 GArray *ldm_volume_generate_dm_tables(const LDMVolume *o,
                                            GError **err);
 
+GString *ldm_volume_dm_get_name(const LDMVolume *o);
 gboolean ldm_volume_dm_create(const LDMVolume *o, GString **created,
                               GError **err);
 

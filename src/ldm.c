@@ -3208,6 +3208,12 @@ _dm_log_fn(const int level, const char * const file, const int line,
     va_end(ap);
 }
 
+GString *
+ldm_volume_dm_get_name(const LDMVolume * const o)
+{
+    return _dm_vol_name(o->priv);
+}
+
 gboolean
 ldm_volume_dm_create(const LDMVolume * const o, GString **created,
                      GError ** const err)
