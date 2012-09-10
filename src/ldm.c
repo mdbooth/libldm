@@ -2761,19 +2761,6 @@ _dm_create(const gchar * const name, uint32_t udev_cookie,
 {
     gboolean r = TRUE;
 
-    /* Check if the device already exists */
-    struct dm_tree *tree = _get_device_tree(err);
-    if (!tree) return FALSE;
-
-    struct dm_tree_node *node = _find_device_tree_node(tree, name);
-    if (node) {
-        g_warning("Not creating existing device %s", name);
-        dm_tree_free(tree); tree = NULL;
-        return TRUE;
-    }
-
-    dm_tree_free(tree); tree = NULL;
-
     struct dm_task * const task = dm_task_create(DM_DEVICE_CREATE);
     if (!task) {
         g_set_error(err, LDM_ERROR, LDM_ERROR_INTERNAL,
@@ -3197,12 +3184,25 @@ _dm_log_fn(const int level, const char * const file, const int line,
     va_end(ap);
 }
 
-GString *
-ldm_volume_dm_create(const LDMVolume * const o, GError ** const err)
+gboolean
+ldm_volume_dm_create(const LDMVolume * const o, GString **created,
+                     GError ** const err)
 {
     const LDMVolumePrivate * const vol = o->priv;
 
-    GString *r;
+    /* Check if the device already exists */
+    struct dm_tree *tree = _get_device_tree(err);
+    if (!tree) return FALSE;
+
+    GString *name = _dm_vol_name(vol);
+    struct dm_tree_node *node = _find_device_tree_node(tree, name->str);
+    if (node) {
+        g_warning("Not creating existing device %s", name->str);
+        dm_tree_free(tree); tree = NULL;
+        return TRUE;
+    }
+    dm_tree_free(tree); tree = NULL;
+    g_string_free(name, TRUE);
 
     /* We should really store the previous logging function and restore it
      * afterwards, but the API doesn't allow this. */
@@ -3211,19 +3211,19 @@ ldm_volume_dm_create(const LDMVolume * const o, GError ** const err)
     switch (vol->type) {
     case LDM_VOLUME_TYPE_SIMPLE:
     case LDM_VOLUME_TYPE_SPANNED:
-        r = _dm_create_spanned(vol, err);
+        name = _dm_create_spanned(vol, err);
         break;
 
     case LDM_VOLUME_TYPE_STRIPED:
-        r = _dm_create_striped(vol, err);
+        name = _dm_create_striped(vol, err);
         break;
 
     case LDM_VOLUME_TYPE_MIRRORED:
-        r = _dm_create_mirrored(vol, err);
+        name = _dm_create_mirrored(vol, err);
         break;
 
     case LDM_VOLUME_TYPE_RAID5:
-        r = _dm_create_raid5(vol, err);
+        name = _dm_create_raid5(vol, err);
         break;
 
     default:
@@ -3233,5 +3233,6 @@ ldm_volume_dm_create(const LDMVolume * const o, GError ** const err)
 
     dm_log_with_errno_init(NULL);
 
-    return r;
+    if (created && name) *created = name;
+    return name == NULL ? FALSE : TRUE;
 }

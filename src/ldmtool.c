@@ -538,11 +538,8 @@ ldm_create(LDM *const ldm, const gint argc, gchar ** const argv,
             for (int j = 0; j < volumes->len; j++) {
                 LDMVolume * const vol = g_array_index(volumes, LDMVolume *, j);
 
-                GString * const device = ldm_volume_dm_create(vol, &err);
-                if (device) {
-                    json_builder_add_string_value(jb, device->str);
-                    g_string_free(device, TRUE);
-                } else {
+                GString *device = NULL;
+                if (!ldm_volume_dm_create(vol, &device, &err)) {
                     gchar *vol_name;
                     g_object_get(vol, "name", &vol_name, NULL);
 
@@ -556,6 +553,11 @@ ldm_create(LDM *const ldm, const gint argc, gchar ** const argv,
                     g_free(dg_guid);
                     
                     g_error_free(err); err = NULL;
+                }
+
+                if (device) {
+                    json_builder_add_string_value(jb, device->str);
+                    g_string_free(device, TRUE);
                 }
             }
         }
@@ -589,15 +591,17 @@ ldm_create(LDM *const ldm, const gint argc, gchar ** const argv,
             return FALSE;
         }
 
-        GString * const device = ldm_volume_dm_create(vol, &err);
-        if (device) {
-            json_builder_add_string_value(jb, device->str);
-            g_string_free(device, TRUE);
-        } else {
+        GString *device = NULL;
+        if (!ldm_volume_dm_create(vol, &device, &err)) {
             g_warning("Unable to create volume %s in disk group %s: %s",
                       argv[2], argv[1], err->message);
             g_error_free(err); err = NULL;
             return FALSE;
+        }
+
+        if (device) {
+            json_builder_add_string_value(jb, device->str);
+            g_string_free(device, TRUE);
         }
     }
 
