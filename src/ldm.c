@@ -2662,12 +2662,113 @@ struct dm_target {
     GString *params;
 };
 
+static struct dm_tree *
+_get_device_tree(GError **err)
+{
+    struct dm_tree *tree;
+    tree = dm_tree_create();
+    if (!tree) {
+        g_set_error(err, LDM_ERROR, LDM_ERROR_INTERNAL,
+                    "dm_tree_create: %s", _dm_err_last_msg);
+        return NULL;
+    }
+
+    struct dm_task *task;
+    task = dm_task_create(DM_DEVICE_LIST);
+    if (!task) {
+        g_set_error(err, LDM_ERROR, LDM_ERROR_INTERNAL,
+                    "dm_task_create: %s", _dm_err_last_msg);
+        goto error;
+    }
+
+    if (!dm_task_run(task)) {
+        g_set_error_literal(err, LDM_ERROR, LDM_ERROR_INTERNAL,
+                            _dm_err_last_msg);
+        goto error;
+    }
+
+    struct dm_names *names;
+    names = dm_task_get_names(task);
+    if (!task) {
+        g_set_error(err, LDM_ERROR, LDM_ERROR_INTERNAL,
+                    "dm_task_get_names: %s", _dm_err_last_msg);
+        goto error;
+    }
+
+    if (names->dev != 0) {
+        for (;;) {
+            if (!dm_tree_add_dev(tree, major(names->dev), minor(names->dev))) {
+                g_set_error(err, LDM_ERROR, LDM_ERROR_INTERNAL,
+                            "dm_tree_add_dev: %s", _dm_err_last_msg);
+                goto error;
+            }
+
+            if (names->next == 0) break;
+
+            names = (struct dm_names *)((char *)names + names->next);
+        }
+    }
+
+    dm_task_destroy(task);
+    return tree;
+
+error:
+    if (tree) dm_tree_free(tree);
+    if (task) dm_task_destroy(task);
+    return NULL;
+}
+
+static struct dm_tree_node *
+_walk_tree(const struct dm_tree * const tree,
+           const struct dm_tree_node * const node,
+           const char * const search)
+{
+    void *handle = NULL;
+    struct dm_tree_node *child;
+    for (;;) {
+        child = dm_tree_next_child(&handle, node, 0);
+        if (!child) return NULL;
+
+        const char * const name = dm_tree_node_get_name(child);
+        if (!name || *name == '\0') continue;
+
+        if (g_strcmp0(search, name) == 0) return child;
+
+        if (dm_tree_node_num_children(child, 0) > 0) {
+            struct dm_tree_node * const r_search =
+                _walk_tree(tree, child, search);
+            if (r_search) return r_search;
+        }
+    }
+}
+
+static struct dm_tree_node *
+_find_device_tree_node(struct dm_tree * const tree,
+                       const char * const name)
+{
+    const struct dm_tree_node * const root = dm_tree_find_node(tree, 0, 0);
+    return _walk_tree(tree, root, name);
+}
+
 gboolean
 _dm_create(const gchar * const name, uint32_t udev_cookie,
            const guint n_targets, const struct dm_target * const targets,
            GError ** const err)
 {
     gboolean r = TRUE;
+
+    /* Check if the device already exists */
+    struct dm_tree *tree = _get_device_tree(err);
+    if (!tree) return FALSE;
+
+    struct dm_tree_node *node = _find_device_tree_node(tree, name);
+    if (node) {
+        g_warning("Not creating existing device %s", name);
+        dm_tree_free(tree); tree = NULL;
+        return TRUE;
+    }
+
+    dm_tree_free(tree); tree = NULL;
 
     struct dm_task * const task = dm_task_create(DM_DEVICE_CREATE);
     if (!task) {
