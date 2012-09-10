@@ -2420,6 +2420,14 @@ _generate_dm_table_part(const LDMPartitionPrivate * const part,
     return table_o;
 }
 
+static GString *
+_dm_vol_name(const LDMVolumePrivate * const vol)
+{
+    GString * r = g_string_new("");
+    g_string_printf(r, "ldm_vol_%s_%s", vol->dgname, vol->name);
+    return r;
+}
+
 static gboolean
 _generate_dm_tables_mirrored(GArray * const ret,
                              const LDMVolumePrivate * const vol,
@@ -2429,8 +2437,7 @@ _generate_dm_tables_mirrored(GArray * const ret,
     LDMDMTablePrivate * const mirror = mirror_o->priv;
     g_array_append_val(ret, mirror_o);
 
-    mirror->name = g_string_new("");
-    g_string_printf(mirror->name, "ldm_vol_%s_%s", vol->dgname, vol->name);
+    mirror->name = _dm_vol_name(vol);
 
     mirror->table = g_string_new("");
     g_string_printf(mirror->table, "0 %lu raid raid1 1 128 %u",
@@ -2481,8 +2488,7 @@ _generate_dm_tables_spanned(GArray * const ret,
     LDMDMTablePrivate * const spanned = spanned_o->priv;
     g_array_append_val(ret, spanned_o);
 
-    spanned->name = g_string_new("");
-    g_string_printf(spanned->name, "ldm_vol_%s_%s", vol->dgname, vol->name);
+    spanned->name = _dm_vol_name(vol);
 
     spanned->table = g_string_new("");
     uint64_t pos = 0;
@@ -2527,8 +2533,7 @@ _generate_dm_tables_striped(GArray * const ret,
     LDMDMTablePrivate * const striped = striped_o->priv;
     g_array_append_val(ret, striped_o);
 
-    striped->name = g_string_new("");
-    g_string_printf(striped->name, "ldm_vol_%s_%s", vol->dgname, vol->name);
+    striped->name = _dm_vol_name(vol);
 
     striped->table = g_string_new("");
     g_string_printf(striped->table, "0 %lu striped %u %lu",
@@ -2566,8 +2571,7 @@ _generate_dm_tables_raid5(GArray * const ret,
     LDMDMTablePrivate * const raid5 = raid5_o->priv;
     g_array_append_val(ret, raid5_o);
 
-    raid5->name = g_string_new("");
-    g_string_printf(raid5->name, "ldm_vol_%s_%s", vol->dgname, vol->name);
+    raid5->name = _dm_vol_name(vol);
 
     raid5->table = g_string_new("");
     g_string_printf(raid5->table, "0 %lu raid raid5_ls 1 %lu %u",
@@ -2945,8 +2949,7 @@ _dm_create_spanned(const LDMVolumePrivate * const vol, GError ** const err)
     uint32_t cookie;
     if (!dm_udev_create_cookie(&cookie)) goto out;
 
-    name = g_string_new("");
-    g_string_printf(name, "ldm_vol_%s_%s", vol->dgname, vol->name);
+    name = _dm_vol_name(vol);
 
     if (!_dm_create(name->str, cookie, vol->parts->len, targets, err)) {
         g_string_free(name, TRUE);
@@ -2998,8 +3001,7 @@ _dm_create_striped(const LDMVolumePrivate * const vol, GError ** const err)
     uint32_t cookie;
     if (!dm_udev_create_cookie(&cookie)) goto out;
 
-    name = g_string_new("");
-    g_string_printf(name, "ldm_vol_%s_%s", vol->dgname, vol->name);
+    name = _dm_vol_name(vol);
 
     if (!_dm_create(name->str, cookie, 1, &target, err)) {
         g_string_free(name, TRUE);
@@ -3065,8 +3067,7 @@ _dm_create_mirrored(const LDMVolumePrivate * const vol, GError ** const err)
     dm_udev_wait(cookie);
     if (!dm_udev_create_cookie(&cookie)) goto out;
 
-    name = g_string_new("");
-    g_string_printf(name, "ldm_vol_%s_%s", vol->dgname, vol->name);
+    name = _dm_vol_name(vol);
 
     if (!_dm_create(name->str, cookie, 1, &target, err)) {
         g_string_free(name, TRUE);
@@ -3146,8 +3147,7 @@ _dm_create_raid5(const LDMVolumePrivate * const vol, GError ** const err)
     dm_udev_wait(cookie);
     if (!dm_udev_create_cookie(&cookie)) goto out;
 
-    name = g_string_new("");
-    g_string_printf(name, "ldm_vol_%s_%s", vol->dgname, vol->name);
+    name = _dm_vol_name(vol);
 
     if (!_dm_create(name->str, cookie, 1, &target, err)) {
         g_string_free(name, TRUE); name = NULL;
