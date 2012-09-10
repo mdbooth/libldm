@@ -2934,7 +2934,11 @@ _dm_create_spanned(const LDMVolumePrivate * const vol, GError ** const err)
     }
 
     uint32_t cookie;
-    if (!dm_udev_create_cookie(&cookie)) goto out;
+    if (!dm_udev_create_cookie(&cookie)) {
+        g_set_error(err, LDM_ERROR, LDM_ERROR_INTERNAL,
+                    "dm_udev_create_cookie: %s", _dm_err_last_msg);
+        goto out;
+    }
 
     name = _dm_vol_name(vol);
 
@@ -2986,7 +2990,11 @@ _dm_create_striped(const LDMVolumePrivate * const vol, GError ** const err)
     }
 
     uint32_t cookie;
-    if (!dm_udev_create_cookie(&cookie)) goto out;
+    if (!dm_udev_create_cookie(&cookie)) {
+        g_set_error(err, LDM_ERROR, LDM_ERROR_INTERNAL,
+                    "dm_udev_create_cookie: %s", _dm_err_last_msg);
+        goto out;
+    }
 
     name = _dm_vol_name(vol);
 
@@ -3019,7 +3027,11 @@ _dm_create_mirrored(const LDMVolumePrivate * const vol, GError ** const err)
     g_array_set_clear_func(devices, _free_gstring);
 
     uint32_t cookie;
-    if (!dm_udev_create_cookie(&cookie)) goto out;
+    if (!dm_udev_create_cookie(&cookie)) {
+        g_set_error(err, LDM_ERROR, LDM_ERROR_INTERNAL,
+                    "dm_udev_create_cookie: %s", _dm_err_last_msg);
+        goto out;
+    }
 
     int found = 0;
     for (int i = 0; i < vol->parts->len; i++) {
@@ -3052,7 +3064,11 @@ _dm_create_mirrored(const LDMVolumePrivate * const vol, GError ** const err)
 
     /* Wait until all partitions have been created */
     dm_udev_wait(cookie);
-    if (!dm_udev_create_cookie(&cookie)) goto out;
+    if (!dm_udev_create_cookie(&cookie)) {
+        g_set_error(err, LDM_ERROR, LDM_ERROR_INTERNAL,
+                    "dm_udev_create_cookie: %s", _dm_err_last_msg);
+        goto out;
+    }
 
     name = _dm_vol_name(vol);
 
@@ -3099,7 +3115,11 @@ _dm_create_raid5(const LDMVolumePrivate * const vol, GError ** const err)
     g_array_set_clear_func(devices, _free_gstring);
 
     uint32_t cookie;
-    if (!dm_udev_create_cookie(&cookie)) goto out;
+    if (!dm_udev_create_cookie(&cookie)) {
+        g_set_error(err, LDM_ERROR, LDM_ERROR_INTERNAL,
+                    "dm_udev_create_cookie: %s", _dm_err_last_msg);
+        goto out;
+    }
 
     int found = 0;
     for (int i = 0; i < vol->parts->len; i++) {
@@ -3132,7 +3152,11 @@ _dm_create_raid5(const LDMVolumePrivate * const vol, GError ** const err)
 
     /* Wait until all partitions have been created */
     dm_udev_wait(cookie);
-    if (!dm_udev_create_cookie(&cookie)) goto out;
+    if (!dm_udev_create_cookie(&cookie)) {
+        g_set_error(err, LDM_ERROR, LDM_ERROR_INTERNAL,
+                    "dm_udev_create_cookie: %s", _dm_err_last_msg);
+        goto out;
+    }
 
     name = _dm_vol_name(vol);
 
