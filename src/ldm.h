@@ -192,33 +192,6 @@ typedef struct
     GObjectClass parent_class;
 } LDMDiskClass;
 
-/* LDMDMTable */
-
-#define LDM_TYPE_DM_TABLE            (ldm_dm_table_get_type())
-#define LDM_DM_TABLE(obj)            (G_TYPE_CHECK_INSTANCE_CAST \
-        ((obj), LDM_TYPE_DM_TABLE, LDMDMTable))
-#define LDM_DM_TABLE_CLASS(klass)    (G_TYPE_CHECK_CLASS_CAST \
-        ((klass), LDM_TYPE_DM_TABLE, LDMDMTable))
-#define LDM_IS_DM_TABLE(obj)         (G_TYPE_CHECK_INSTANCE_TYPE \
-        ((obj), LDM_TYPE_DM_TABLE))
-#define LDM_IS_DM_TABLE_CLASS(klass) (G_TYPE_CHECK_CLASS_TYPE \
-        ((klass), LDM_TYPE_DM_TABLE))
-#define LDM_DM_TABLE_GET_CLASS(obj)  (G_TYPE_INSTANCE_GET_CLASS \
-        ((obj), LDM_TYPE_DM_TABLE, LDMDMTableClass))
-
-typedef struct _LDMDMTable LDMDMTablePrivate;
-typedef struct
-{
-    GObject parent;
-    LDMDMTablePrivate *priv;
-} LDMDMTable;
-
-typedef struct _LDMDMTableClass LDMDMTableClass;
-struct _LDMDMTableClass
-{
-    GObjectClass parent_class;
-};
-
 GType ldm_get_type(void);
 GType ldm_disk_group_get_type(void);
 
@@ -233,9 +206,6 @@ GArray *ldm_disk_group_get_partitions(LDMDiskGroup *o, GError **err);
 GArray *ldm_disk_group_get_disks(LDMDiskGroup *o, GError **err);
 GArray *ldm_volume_get_partitions(LDMVolume *o, GError **err);
 LDMDisk *ldm_partition_get_disk(LDMPartition *o, GError **err);
-
-GArray *ldm_volume_generate_dm_tables(const LDMVolume *o,
-                                           GError **err);
 
 GString *ldm_volume_dm_get_name(const LDMVolume *o);
 gboolean ldm_volume_dm_create(const LDMVolume *o, GString **created,
