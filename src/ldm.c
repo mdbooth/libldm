@@ -3227,7 +3227,6 @@ ldm_volume_dm_create(const LDMVolume * const o, GString **created,
     GString *name = _dm_vol_name(vol);
     struct dm_tree_node *node = _find_device_tree_node(tree, name->str);
     if (node) {
-        g_warning("Not creating existing device %s", name->str);
         dm_tree_free(tree); tree = NULL;
         return TRUE;
     }
