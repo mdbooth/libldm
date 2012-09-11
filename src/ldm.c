@@ -214,10 +214,12 @@ ldm_error_get_type(void)
             { LDM_ERROR_NOT_LDM, "LDM_ERROR_NOT_LDM", "not_ldm" },
             { LDM_ERROR_INVALID, "LDM_ERROR_INVALID", "invalid" },
             { LDM_ERROR_INCONSISTENT, "LDM_ERROR_INCONSISTENT",
-                                           "inconsistent" },
+                                      "inconsistent" },
             { LDM_ERROR_NOTSUPPORTED, "LDM_ERROR_NOTSUPPORTED",
-                                           "notsupported" },
-            { LDM_ERROR_MISSING_DISK, "LDM_ERROR_MISSING_DISK", "missing-disk" }
+                                      "notsupported" },
+            { LDM_ERROR_MISSING_DISK, "LDM_ERROR_MISSING_DISK",
+                                      "missing-disk" },
+            { LDM_ERROR_EXTERNAL, "LDM_ERROR_EXTERNAL", "external" }
         };
         etype = g_enum_register_static("LDMError", values);
     }
@@ -2313,7 +2315,7 @@ _get_device_tree(GError **err)
     struct dm_tree *tree;
     tree = dm_tree_create();
     if (!tree) {
-        g_set_error(err, LDM_ERROR, LDM_ERROR_INTERNAL,
+        g_set_error(err, LDM_ERROR, LDM_ERROR_EXTERNAL,
                     "dm_tree_create: %s", _dm_err_last_msg);
         return NULL;
     }
@@ -2321,13 +2323,13 @@ _get_device_tree(GError **err)
     struct dm_task *task;
     task = dm_task_create(DM_DEVICE_LIST);
     if (!task) {
-        g_set_error(err, LDM_ERROR, LDM_ERROR_INTERNAL,
+        g_set_error(err, LDM_ERROR, LDM_ERROR_EXTERNAL,
                     "dm_task_create: %s", _dm_err_last_msg);
         goto error;
     }
 
     if (!dm_task_run(task)) {
-        g_set_error_literal(err, LDM_ERROR, LDM_ERROR_INTERNAL,
+        g_set_error_literal(err, LDM_ERROR, LDM_ERROR_EXTERNAL,
                             _dm_err_last_msg);
         goto error;
     }
@@ -2335,7 +2337,7 @@ _get_device_tree(GError **err)
     struct dm_names *names;
     names = dm_task_get_names(task);
     if (!task) {
-        g_set_error(err, LDM_ERROR, LDM_ERROR_INTERNAL,
+        g_set_error(err, LDM_ERROR, LDM_ERROR_EXTERNAL,
                     "dm_task_get_names: %s", _dm_err_last_msg);
         goto error;
     }
@@ -2343,7 +2345,7 @@ _get_device_tree(GError **err)
     if (names->dev != 0) {
         for (;;) {
             if (!dm_tree_add_dev(tree, major(names->dev), minor(names->dev))) {
-                g_set_error(err, LDM_ERROR, LDM_ERROR_INTERNAL,
+                g_set_error(err, LDM_ERROR, LDM_ERROR_EXTERNAL,
                             "dm_tree_add_dev: %s", _dm_err_last_msg);
                 goto error;
             }
@@ -2404,14 +2406,14 @@ _dm_create(const gchar * const name, uint32_t udev_cookie,
 
     struct dm_task * const task = dm_task_create(DM_DEVICE_CREATE);
     if (!task) {
-        g_set_error(err, LDM_ERROR, LDM_ERROR_INTERNAL,
+        g_set_error(err, LDM_ERROR, LDM_ERROR_EXTERNAL,
                     "dm_task_create(DM_DEVICE_CREATE) failed: %s",
                     _dm_err_last_msg);
         return FALSE;
     }
 
     if (!dm_task_set_name(task, name)) {
-        g_set_error(err, LDM_ERROR, LDM_ERROR_INTERNAL,
+        g_set_error(err, LDM_ERROR, LDM_ERROR_EXTERNAL,
                     "DM_DEVICE_CREATE: dm_task_set_name(%s) failed: %s",
                     name, _dm_err_last_msg);
         r = FALSE; goto out;
@@ -2423,7 +2425,7 @@ _dm_create(const gchar * const name, uint32_t udev_cookie,
         if (!dm_task_add_target(task, target->start, target->size,
                                       target->type, target->params->str))
         {
-            g_set_error(err, LDM_ERROR, LDM_ERROR_INTERNAL,
+            g_set_error(err, LDM_ERROR, LDM_ERROR_EXTERNAL,
                         "DM_DEVICE_CREATE: "
                         "dm_task_add_target(%s, %lu, %lu, %s, %s) failed: %s",
                         name, target->start, target->size,
@@ -2433,14 +2435,14 @@ _dm_create(const gchar * const name, uint32_t udev_cookie,
     }
 
     if (!dm_task_set_cookie(task, &udev_cookie, 0)) {
-        g_set_error(err, LDM_ERROR, LDM_ERROR_INTERNAL,
+        g_set_error(err, LDM_ERROR, LDM_ERROR_EXTERNAL,
                     "DM_DEVICE_CREATE: dm_task_set_cookie(%08X) failed: %s",
                     udev_cookie, _dm_err_last_msg);
         r = FALSE; goto out;
     }
 
     if (!dm_task_run(task)) {
-        g_set_error_literal(err, LDM_ERROR, LDM_ERROR_INTERNAL,
+        g_set_error_literal(err, LDM_ERROR, LDM_ERROR_EXTERNAL,
                             _dm_err_last_msg);
         r = FALSE; goto out;
     }
@@ -2457,28 +2459,28 @@ _dm_remove(const gchar * const name, uint32_t udev_cookie, GError ** const err)
 
     struct dm_task * const task = dm_task_create(DM_DEVICE_REMOVE);
     if (!task) {
-        g_set_error(err, LDM_ERROR, LDM_ERROR_INTERNAL,
+        g_set_error(err, LDM_ERROR, LDM_ERROR_EXTERNAL,
                     "dm_task_create(DM_DEVICE_REMOVE) failed: %s",
                     _dm_err_last_msg);
         r = FALSE; goto out;
     }
 
     if (!dm_task_set_name(task, name)) {
-        g_set_error(err, LDM_ERROR, LDM_ERROR_INTERNAL,
+        g_set_error(err, LDM_ERROR, LDM_ERROR_EXTERNAL,
                     "DM_DEVICE_REMOVE: dm_task_set_name(%s) failed: %s",
                     name, _dm_err_last_msg);
         r = FALSE; goto out;
     }
 
     if (udev_cookie && !dm_task_set_cookie(task, &udev_cookie, 0)) {
-        g_set_error(err, LDM_ERROR, LDM_ERROR_INTERNAL,
+        g_set_error(err, LDM_ERROR, LDM_ERROR_EXTERNAL,
                     "DM_DEVICE_REMOVE: dm_task_set_cookie(%08X) failed: %s",
                     udev_cookie, _dm_err_last_msg);
         r = FALSE; goto out;
     }
 
     if (!dm_task_run(task)) {
-        g_set_error_literal(err, LDM_ERROR, LDM_ERROR_INTERNAL,
+        g_set_error_literal(err, LDM_ERROR, LDM_ERROR_EXTERNAL,
                             _dm_err_last_msg);
         r = FALSE; goto out;
     }
@@ -2576,7 +2578,7 @@ _dm_create_spanned(const LDMVolumePrivate * const vol, GError ** const err)
 
     uint32_t cookie;
     if (!dm_udev_create_cookie(&cookie)) {
-        g_set_error(err, LDM_ERROR, LDM_ERROR_INTERNAL,
+        g_set_error(err, LDM_ERROR, LDM_ERROR_EXTERNAL,
                     "dm_udev_create_cookie: %s", _dm_err_last_msg);
         goto out;
     }
@@ -2632,7 +2634,7 @@ _dm_create_striped(const LDMVolumePrivate * const vol, GError ** const err)
 
     uint32_t cookie;
     if (!dm_udev_create_cookie(&cookie)) {
-        g_set_error(err, LDM_ERROR, LDM_ERROR_INTERNAL,
+        g_set_error(err, LDM_ERROR, LDM_ERROR_EXTERNAL,
                     "dm_udev_create_cookie: %s", _dm_err_last_msg);
         goto out;
     }
@@ -2669,7 +2671,7 @@ _dm_create_mirrored(const LDMVolumePrivate * const vol, GError ** const err)
 
     uint32_t cookie;
     if (!dm_udev_create_cookie(&cookie)) {
-        g_set_error(err, LDM_ERROR, LDM_ERROR_INTERNAL,
+        g_set_error(err, LDM_ERROR, LDM_ERROR_EXTERNAL,
                     "dm_udev_create_cookie: %s", _dm_err_last_msg);
         goto out;
     }
@@ -2706,7 +2708,7 @@ _dm_create_mirrored(const LDMVolumePrivate * const vol, GError ** const err)
     /* Wait until all partitions have been created */
     dm_udev_wait(cookie);
     if (!dm_udev_create_cookie(&cookie)) {
-        g_set_error(err, LDM_ERROR, LDM_ERROR_INTERNAL,
+        g_set_error(err, LDM_ERROR, LDM_ERROR_EXTERNAL,
                     "dm_udev_create_cookie: %s", _dm_err_last_msg);
         goto out;
     }
@@ -2757,7 +2759,7 @@ _dm_create_raid5(const LDMVolumePrivate * const vol, GError ** const err)
 
     uint32_t cookie;
     if (!dm_udev_create_cookie(&cookie)) {
-        g_set_error(err, LDM_ERROR, LDM_ERROR_INTERNAL,
+        g_set_error(err, LDM_ERROR, LDM_ERROR_EXTERNAL,
                     "dm_udev_create_cookie: %s", _dm_err_last_msg);
         goto out;
     }
@@ -2794,7 +2796,7 @@ _dm_create_raid5(const LDMVolumePrivate * const vol, GError ** const err)
     /* Wait until all partitions have been created */
     dm_udev_wait(cookie);
     if (!dm_udev_create_cookie(&cookie)) {
-        g_set_error(err, LDM_ERROR, LDM_ERROR_INTERNAL,
+        g_set_error(err, LDM_ERROR, LDM_ERROR_EXTERNAL,
                     "dm_udev_create_cookie: %s", _dm_err_last_msg);
         goto out;
     }
@@ -2923,7 +2925,7 @@ ldm_volume_dm_remove(const LDMVolume * const o, GString **removed,
     if (node) {
         uint32_t cookie;
         if (!dm_udev_create_cookie(&cookie)) {
-            g_set_error(err, LDM_ERROR, LDM_ERROR_INTERNAL,
+            g_set_error(err, LDM_ERROR, LDM_ERROR_EXTERNAL,
                         "dm_udev_create_cookie: %s", _dm_err_last_msg);
             g_string_free(name, TRUE); name = NULL;
             goto out;
@@ -2933,7 +2935,7 @@ ldm_volume_dm_remove(const LDMVolume * const o, GString **removed,
 
         dm_tree_set_cookie(node, cookie);
         if (!dm_tree_deactivate_children(node, NULL, 0)) {
-            g_set_error(err, LDM_ERROR, LDM_ERROR_INTERNAL,
+            g_set_error(err, LDM_ERROR, LDM_ERROR_EXTERNAL,
                         "removing children: %s", _dm_err_last_msg);
             g_string_free(name, TRUE); name = NULL;
             goto out;
