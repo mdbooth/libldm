@@ -16,27 +16,30 @@
 
 AM_CFLAGS = -Wall -Werror
 
-check_PROGRAMS = partread ldmread ldmtables
+check_PROGRAMS = partread ldmread
 
 partread_CFLAGS = $(AM_CFLAGS) -I$(top_srcdir)/src
-partread_LDADD = $(top_builddir)/src/libldm.la
+partread_LDADD = $(top_builddir)/src/libldm.la $(DEVMAPPER_LIBS)
 
 ldmread_CFLAGS = $(AM_CFLAGS) -I$(top_srcdir)/src $(GOBJECT_CFLAGS)
-ldmread_LDADD = $(top_builddir)/src/libldm.la
+ldmread_LDADD = $(top_builddir)/src/libldm.la $(DEVMAPPER_LIBS)
 
-ldmtables_CFLAGS = $(AM_CFLAGS) -I$(top_srcdir)/src $(GOBJECT_CFLAGS)
-ldmtables_LDADD = $(top_builddir)/src/libldm.la
+2003R2_DG = 03c0c4fc-8b6f-402b-9431-4be2e5823b1c
+2008R2_DG = 06495a84-fbfd-11e1-8cf9-52540061f5db
 
 2003R2_SIMPLE = \
-    data/ldm-2003r2-simple.img
+    data/ldm-2003r2-simple-1.img
+2003R2_SIMPLE_volume = $(2003R2_DG) Volume1
 
 2003R2_SPANNED = \
     data/ldm-2003r2-spanned-1.img \
     data/ldm-2003r2-spanned-2.img
+2003R2_SPANNED_volume = $(2003R2_DG) Volume2
 
 2003R2_STRIPED = \
     data/ldm-2003r2-striped-1.img \
     data/ldm-2003r2-striped-2.img
+2003R2_STRIPED_volume = $(2003R2_DG) Stripe1
 
 2003R2_MIRRORED = \
     data/ldm-2003r2-mirrored-1.img \
@@ -45,6 +48,9 @@ ldmtables_LDADD = $(top_builddir)/src/libldm.la
     data/ldm-2003r2-mirrored-1.img
 2003R2_MIRRORED_partial_2 = \
     data/ldm-2003r2-mirrored-2.img
+2003R2_MIRRORED_volume = $(2003R2_DG) Volume3
+2003R2_MIRRORED_partial_1_volume = $(2003R2_DG) Volume3
+2003R2_MIRRORED_partial_2_volume = $(2003R2_DG) Volume3
 
 2003R2_RAID5 = \
     data/ldm-2003r2-raid5-1.img \
@@ -59,14 +65,20 @@ ldmtables_LDADD = $(top_builddir)/src/libldm.la
 2003R2_RAID5_partial_3 = \
     data/ldm-2003r2-raid5-1.img \
     data/ldm-2003r2-raid5-3.img
+2003R2_RAID5_volume = $(2003R2_DG) Raid1
+2003R2_RAID5_partial_1_volume = $(2003R2_DG) Raid1
+2003R2_RAID5_partial_2_volume = $(2003R2_DG) Raid1
+2003R2_RAID5_partial_3_volume = $(2003R2_DG) Raid1
 
 2008R2_SPANNED = \
     data/ldm-2008r2-spanned-1.img \
     data/ldm-2008r2-spanned-2.img
+2008R2_SPANNED_volume = $(2008R2_DG) Volume1
 
 2008R2_STRIPED = \
     data/ldm-2008r2-striped-1.img \
     data/ldm-2008r2-striped-2.img
+2008R2_STRIPED_volume = $(2008R2_DG) Volume2
 
 2008R2_MIRRORED = \
     data/ldm-2008r2-mirrored-1.img \
@@ -75,6 +87,9 @@ ldmtables_LDADD = $(top_builddir)/src/libldm.la
     data/ldm-2008r2-mirrored-1.img
 2008R2_MIRRORED_partial_2 = \
     data/ldm-2008r2-mirrored-2.img
+2008R2_MIRRORED_volume = $(2008R2_DG) Volume3
+2008R2_MIRRORED_partial_1_volume = $(2008R2_DG) Volume3
+2008R2_MIRRORED_partial_2_volume = $(2008R2_DG) Volume3
 
 2008R2_RAID5 = \
     data/ldm-2008r2-raid5-1.img \
@@ -89,6 +104,10 @@ ldmtables_LDADD = $(top_builddir)/src/libldm.la
 2008R2_RAID5_partial_3 = \
     data/ldm-2008r2-raid5-1.img \
     data/ldm-2008r2-raid5-3.img
+2008R2_RAID5_volume = $(2008R2_DG) Volume4
+2008R2_RAID5_partial_1_volume = $(2008R2_DG) Volume4
+2008R2_RAID5_partial_2_volume = $(2008R2_DG) Volume4
+2008R2_RAID5_partial_3_volume = $(2008R2_DG) Volume4
 
 img_files = \
     $(2003R2_SIMPLE) \
@@ -129,9 +148,9 @@ TESTS = \
     #2008R2_RAID5_partial_2 \
     #2008R2_RAID5_partial_3
 
-$(TESTS): Makefile.am checkmount.pl
+$(TESTS): Makefile.am checkmount.pl $(img_files)
 	echo "#!/bin/sh" > $@
-	echo "sudo ./checkmount.pl $($@)" >> $@
+	echo "sudo ./checkmount.pl $(top_builddir)/src $($@_volume) $($@)" >> $@
 	chmod 755 $@
 
 .PHONY: data

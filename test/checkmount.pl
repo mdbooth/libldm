@@ -4,16 +4,22 @@ use strict;
 use warnings;
 
 use File::Temp qw(tempdir);
+use JSON::PP;
 
 my @loops;
 my @dm_devices;
 
 my $mount = tempdir(CLEANUP => 1);
+my $mounted = 0;
+
+my $builddir = shift @ARGV;
+my $dg = shift @ARGV;
+my $vol = shift @ARGV;
 
 END {
     my $err = $?;
 
-    system('umount', $mount) if defined($mount);
+    system('umount', $mount) if (defined($mount) && $mounted);
 
     while(@dm_devices) {
         system('dmsetup', 'remove', pop(@dm_devices));
@@ -26,41 +32,37 @@ END {
     $? = $err;
 }
 
+my @loop_args;
 foreach my $arg (@ARGV) {
     my $loop = `losetup -f --show $arg`;
     chomp($loop);
     push(@loops, $loop);
+    push(@loop_args, '-d', $loop);
 }
 
-open(LDMTABLES, '-|', './ldmtables', @loops) or die("Unable to run ldmtables");
-while(<LDMTABLES>) {
-    chomp;
-    my $device = $_;
-
-    push(@dm_devices, $device);
-    open(DMSETUP, '|-', 'dmsetup', 'create', $device);
-    while(<LDMTABLES>) {
-        chomp;
-        last if $_ eq "";
-
-        print DMSETUP $_,"\n";
-    }
-    close(DMSETUP);
+my $json = JSON::PP->new();
+open(JSON, '-|', "$builddir/ldmtool", @loop_args, 'create', 'volume', $dg, $vol)
+    or die("Unable to run ldmtool");
+while(<JSON>) {
+    $json->incr_parse($_);
 }
-close(LDMTABLES);
+close(JSON);
 
-system('mount', '/dev/mapper/'.$dm_devices[$#dm_devices], $mount);
+my $tested = 0;
+foreach my $device (@{$json->incr_parse}) {
+    system('mount', "/dev/mapper/$device", $mount);
+    $mounted = 1;
 
-my $opened;
-foreach my $file ('test.txt', 'test.txt.txt') {
-    open(TEST, '<', "$mount/$file") or next;
-    $opened = 1;
-    last;
+    open(TEST, '<', "$mount/test.txt") or die "Test file missing";
+    my $line = <TEST>;
+    close(TEST);
+    system('umount', $mount);
+    $mounted = 0;
+
+    `$builddir/ldmtool remove all`;
+
+    exit(1) unless $line eq 'Filesystem test';
+    $tested = 1;
 }
-die "Test file missing" unless defined($opened);
 
-my $line = <TEST>;
-close(TEST);
-
-exit(0) if $line eq 'Filesystem test';
-exit(1);
+exit($tested ? 0 : 1);
