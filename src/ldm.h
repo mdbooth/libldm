@@ -240,6 +240,8 @@ GArray *ldm_volume_generate_dm_tables(const LDMVolume *o,
 GString *ldm_volume_dm_get_name(const LDMVolume *o);
 gboolean ldm_volume_dm_create(const LDMVolume *o, GString **created,
                               GError **err);
+gboolean ldm_volume_dm_remove(const LDMVolume *o, GString **removed,
+                              GError **err);
 
 G_END_DECLS
 

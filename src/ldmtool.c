@@ -49,7 +49,11 @@
     "  create all\n" \
     "  create volume <disk group guid> <name>"
 
-#define USAGE_ALL USAGE_SCAN "\n" USAGE_SHOW "\n" USAGE_CREATE
+#define USAGE_REMOVE \
+    "  remove all\n" \
+    "  remove volume <disk group guid> <name>"
+
+#define USAGE_ALL USAGE_SCAN "\n" USAGE_SHOW "\n" USAGE_CREATE "\n" USAGE_REMOVE
 
 gboolean
 usage_show(void)
@@ -64,12 +68,19 @@ gboolean usage_create(void)
     return FALSE;
 }
 
+gboolean usage_remove(void)
+{
+    g_warning(USAGE_REMOVE);
+    return FALSE;
+}
+
 typedef gboolean (*_action_t) (LDM *ldm, gint argc, gchar **argv,
                                JsonBuilder *jb);
 
 gboolean ldm_scan(LDM *ldm, gint argc, gchar **argv, JsonBuilder *jb);
 gboolean ldm_show(LDM *ldm, gint argc, gchar **argv, JsonBuilder *jb);
 gboolean ldm_create(LDM *ldm, gint argc, gchar **argv, JsonBuilder *jb);
+gboolean ldm_remove(LDM *ldm, gint argc, gchar **argv, JsonBuilder *jb);
 
 typedef struct {
     const char * name;
@@ -80,6 +91,7 @@ static const _command_t const commands[] = {
     { "scan", ldm_scan },
     { "show", ldm_show },
     { "create", ldm_create },
+    { "remove", ldm_remove },
     { NULL }
 };
 
@@ -519,16 +531,21 @@ ldm_show(LDM *const ldm, const gint argc, gchar ** const argv,
     return usage_show();
 }
 
-gboolean
-ldm_create(LDM *const ldm, const gint argc, gchar ** const argv,
-           JsonBuilder * const jb)
+typedef gboolean (*_usage_t)();
+typedef gboolean (*_vol_action_t)(const LDMVolume *, GString **, GError **);
+
+static gboolean
+_ldm_vol_action(LDM *const ldm, const gint argc, gchar ** const argv,
+                JsonBuilder * const jb,
+                const gchar * const action_desc,
+                _usage_t const usage, _vol_action_t const action)
 {
     GError *err = NULL;
 
     json_builder_begin_array(jb);
 
     if (argc == 1) {
-        if (g_strcmp0(argv[0], "all") != 0) return usage_create();
+        if (g_strcmp0(argv[0], "all") != 0) return (*usage)();
 
         GArray *dgs = ldm_get_disk_groups(ldm, &err);
         for (int i = 0; i < dgs->len; i++) {
@@ -539,15 +556,15 @@ ldm_create(LDM *const ldm, const gint argc, gchar ** const argv,
                 LDMVolume * const vol = g_array_index(volumes, LDMVolume *, j);
 
                 GString *device = NULL;
-                if (!ldm_volume_dm_create(vol, &device, &err)) {
+                if (!(*action)(vol, &device, &err)) {
                     gchar *vol_name;
                     g_object_get(vol, "name", &vol_name, NULL);
 
                     gchar *dg_guid;
                     g_object_get(dg, "guid", &dg_guid, NULL);
 
-                    g_warning("Unable to create volume %s in disk group %s: %s",
-                              vol_name, dg_guid, err->message);
+                    g_warning("Unable to %s volume %s in disk group %s: %s",
+                              action_desc, vol_name, dg_guid, err->message);
                               
                     g_free(vol_name);
                     g_free(dg_guid);
@@ -565,7 +582,7 @@ ldm_create(LDM *const ldm, const gint argc, gchar ** const argv,
     }
 
     else if (argc == 3) {
-        if (g_strcmp0(argv[0], "volume") != 0) return usage_create();
+        if (g_strcmp0(argv[0], "volume") != 0) return (*usage)();
 
         LDMDiskGroup * const dg = find_diskgroup(ldm, argv[1]);
         if (!dg) return FALSE;
@@ -592,9 +609,9 @@ ldm_create(LDM *const ldm, const gint argc, gchar ** const argv,
         }
 
         GString *device = NULL;
-        if (!ldm_volume_dm_create(vol, &device, &err)) {
-            g_warning("Unable to create volume %s in disk group %s: %s",
-                      argv[2], argv[1], err->message);
+        if (!(*action)(vol, &device, &err)) {
+            g_warning("Unable to %s volume %s in disk group %s: %s",
+                      action_desc, argv[2], argv[1], err->message);
             g_error_free(err); err = NULL;
             return FALSE;
         }
@@ -606,12 +623,28 @@ ldm_create(LDM *const ldm, const gint argc, gchar ** const argv,
     }
 
     else {
-        return usage_create();
+        return (*usage)();
     }
 
     json_builder_end_array(jb);
 
     return TRUE;
+}
+
+gboolean
+ldm_create(LDM *const ldm, const gint argc, gchar ** const argv,
+           JsonBuilder * const jb)
+{
+    return _ldm_vol_action(ldm, argc, argv, jb,
+                           "create", usage_create, ldm_volume_dm_create);
+}
+
+gboolean
+ldm_remove(LDM *const ldm, const gint argc, gchar ** const argv,
+           JsonBuilder * const jb)
+{
+    return _ldm_vol_action(ldm, argc, argv, jb,
+                           "remove", usage_remove, ldm_volume_dm_remove);
 }
 
 gboolean
