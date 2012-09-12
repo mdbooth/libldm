@@ -294,6 +294,7 @@ show_volume(LDM *const ldm, const gint argc, gchar ** const argv,
         g_warning("Unable to get volumes from disk group: %s", err->message);
         return FALSE;
     }
+    gboolean found = FALSE;
     for (int i = 0; i < volumes->len; i++) {
         LDMVolume * const vol = g_array_index(volumes, LDMVolume *, i);
 
@@ -303,7 +304,6 @@ show_volume(LDM *const ldm, const gint argc, gchar ** const argv,
         guint64 chunk_size = ldm_volume_get_chunk_size(vol);
         gchar *hint = ldm_volume_get_hint(vol);
 
-        gboolean found = FALSE;
         if (g_strcmp0(name, argv[1]) == 0) {
             found = TRUE;
 
@@ -357,7 +357,7 @@ show_volume(LDM *const ldm, const gint argc, gchar ** const argv,
     }
     g_array_unref(volumes);
 
-    return TRUE;
+    return found;
 }
 
 gboolean
