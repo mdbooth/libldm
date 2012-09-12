@@ -96,7 +96,7 @@ static const _command_t const commands[] = {
 };
 
 gboolean
-do_command(LDM * const ldm, const int argc, char *argv[],
+do_command(LDM * const ldm, const int argc, char *argv[], gboolean *result,
            GOutputStream * const out,
            JsonGenerator * const jg, JsonBuilder * const jb)
 {
@@ -112,6 +112,10 @@ do_command(LDM * const ldm, const int argc, char *argv[],
                     if (err) { g_error_free(err); err = NULL; }
                 }
                 printf("\n");
+
+                if (result) *result = TRUE;
+            } else {
+                if (result) *result = FALSE;
             }
             return TRUE;
         }
@@ -672,7 +676,8 @@ shell(LDM * const ldm, gchar ** const devices,
         history_len++;
         free(line);
 
-        if (!do_command(ldm, argc, argv, out, jg, jb)) {
+        gboolean result;
+        if (!do_command(ldm, argc, argv, &result, out, jg, jb)) {
             if (g_strcmp0("quit", argv[0]) == 0 ||
                 g_strcmp0("exit", argv[0]) == 0)
             {
@@ -682,7 +687,7 @@ shell(LDM * const ldm, gchar ** const devices,
 
             printf("Unrecognised command: %s\n", argv[0]);
         }
-        json_builder_reset(jb);
+        if (result) json_builder_reset(jb);
 
         g_strfreev(argv);
     }
@@ -761,14 +766,15 @@ cmdline(LDM * const ldm, gchar **devices,
     if (!_scan(ldm, TRUE, g_strv_length(devices), devices, NULL)) goto error;
 
     JsonBuilder *jb = json_builder_new();
-    if (!do_command(ldm, argc, argv, out, jg, jb)) {
+    gboolean result;
+    if (!do_command(ldm, argc, argv, &result, out, jg, jb)) {
         g_warning("Unrecognised command: %s", argv[0]);
         goto error;
     }
 
     if (scanned) g_array_unref(scanned);
     g_object_unref(jb);
-    return TRUE;
+    return result;
 
 error:
     if (scanned) g_array_unref(scanned);
