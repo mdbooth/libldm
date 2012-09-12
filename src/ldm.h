@@ -197,20 +197,20 @@ typedef struct
 GType ldm_get_type(void);
 GType ldm_disk_group_get_type(void);
 
-LDM *ldm_new(GError **err);
+LDM *ldm_new();
 gboolean ldm_add(LDM *o, const gchar *path, GError **err);
 gboolean ldm_add_fd(LDM *o, int fd, guint secsize, const gchar *path,
-                         GError **err);
+                    GError **err);
 
-GArray *ldm_get_disk_groups(LDM *o, GError **err);
+GArray *ldm_get_disk_groups(LDM *o);
 
-GArray *ldm_disk_group_get_volumes(LDMDiskGroup *o, GError **err);
-GArray *ldm_disk_group_get_partitions(LDMDiskGroup *o, GError **err);
-GArray *ldm_disk_group_get_disks(LDMDiskGroup *o, GError **err);
+GArray *ldm_disk_group_get_volumes(LDMDiskGroup *o);
+GArray *ldm_disk_group_get_partitions(LDMDiskGroup *o);
+GArray *ldm_disk_group_get_disks(LDMDiskGroup *o);
 gchar *ldm_disk_group_get_name(const LDMDiskGroup *o);
 gchar *ldm_disk_group_get_guid(const LDMDiskGroup *o);
 
-GArray *ldm_volume_get_partitions(LDMVolume *o, GError **err);
+GArray *ldm_volume_get_partitions(LDMVolume *o);
 gchar *ldm_volume_get_name(const LDMVolume *o);
 LDMVolumeType ldm_volume_get_voltype(const LDMVolume *o);
 guint64 ldm_volume_get_size(const LDMVolume *o);
@@ -224,7 +224,7 @@ gboolean ldm_volume_dm_create(const LDMVolume *o, GString **created,
 gboolean ldm_volume_dm_remove(const LDMVolume *o, GString **removed,
                               GError **err);
 
-LDMDisk *ldm_partition_get_disk(LDMPartition *o, GError **err);
+LDMDisk *ldm_partition_get_disk(LDMPartition *o);
 gchar *ldm_partition_get_name(const LDMPartition *o);
 guint64 ldm_partition_get_start(const LDMPartition *o);
 guint64 ldm_partition_get_size(const LDMPartition *o);

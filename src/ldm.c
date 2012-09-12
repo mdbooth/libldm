@@ -2290,7 +2290,7 @@ error:
 }
 
 LDM *
-ldm_new(GError ** const err)
+ldm_new()
 {
     LDM *ldm = LDM(g_object_new(LDM_TYPE, NULL));
     ldm->priv->disk_groups = g_array_sized_new(FALSE, FALSE,
@@ -2301,42 +2301,42 @@ ldm_new(GError ** const err)
 }
 
 GArray *
-ldm_get_disk_groups(LDM * const o, GError ** const err)
+ldm_get_disk_groups(LDM * const o)
 {
     if (o->priv->disk_groups) g_array_ref(o->priv->disk_groups);
     return o->priv->disk_groups;
 }
 
 GArray *
-ldm_disk_group_get_volumes(LDMDiskGroup * const o, GError ** const err)
+ldm_disk_group_get_volumes(LDMDiskGroup * const o)
 {
     if (o->priv->vols) g_array_ref(o->priv->vols);
     return o->priv->vols;
 }
 
 GArray *
-ldm_disk_group_get_partitions(LDMDiskGroup * const o, GError ** const err)
+ldm_disk_group_get_partitions(LDMDiskGroup * const o)
 {
     if (o->priv->parts) g_array_ref(o->priv->parts);
     return o->priv->parts;
 }
 
 GArray *
-ldm_disk_group_get_disks(LDMDiskGroup * const o, GError ** const err)
+ldm_disk_group_get_disks(LDMDiskGroup * const o)
 {
     if (o->priv->disks) g_array_ref(o->priv->disks);
     return o->priv->disks;
 }
 
 GArray *
-ldm_volume_get_partitions(LDMVolume * const o, GError ** const err)
+ldm_volume_get_partitions(LDMVolume * const o)
 {
     if (o->priv->parts) g_array_ref(o->priv->parts);
     return o->priv->parts;
 }
 
 LDMDisk *
-ldm_partition_get_disk(LDMPartition * const o, GError ** const err)
+ldm_partition_get_disk(LDMPartition * const o)
 {
     if (o->priv->disk) g_object_ref(o->priv->disk);
     return o->priv->disk;

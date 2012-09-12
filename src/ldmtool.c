@@ -130,8 +130,6 @@ _scan(LDM *const ldm, gboolean ignore_errors,
       const gint argc, gchar ** const argv,
       JsonBuilder * const jb)
 {
-    GError *err = NULL;
-
     wordexp_t p = {};
     for (int i = 0; i < argc; i++) {
         gchar * const pattern = argv[i];
@@ -140,6 +138,7 @@ _scan(LDM *const ldm, gboolean ignore_errors,
         for (int j = 0; j < p.we_wordc; j++) {
             gchar * const path = p.we_wordv[j];
 
+            GError *err = NULL;
             if (!ldm_add(ldm, path, &err)) {
                 if (
                     !ignore_errors &&
@@ -156,11 +155,7 @@ _scan(LDM *const ldm, gboolean ignore_errors,
     if (jb) {
         json_builder_begin_array(jb);
 
-        GArray * const dgs = ldm_get_disk_groups(ldm, &err);
-        if (!dgs) {
-            g_warning("Error listing disk groups: %s", err->message);
-            return FALSE;
-        }
+        GArray * const dgs = ldm_get_disk_groups(ldm);
         for (int i = 0; i < dgs->len; i++) {
             LDMDiskGroup * const dg = g_array_index(dgs, LDMDiskGroup *, i);
 
@@ -203,14 +198,9 @@ show_json_array(JsonBuilder * const jb, const GArray * const array,
 LDMDiskGroup *
 find_diskgroup(LDM * const ldm, const gchar * const guid)
 {
-    GError *err = NULL;
     LDMDiskGroup *dg = NULL;
 
-    GArray * const diskgroups = ldm_get_disk_groups(ldm, &err);
-    if (!diskgroups) {
-        g_warning("Error listing disk groups: %s", err->message);
-        return NULL;
-    }
+    GArray * const diskgroups = ldm_get_disk_groups(ldm);
     for (int i = 0; i < diskgroups->len; i++) {
         LDMDiskGroup * const dg_i =
             g_array_index(diskgroups, LDMDiskGroup *, i);
@@ -257,21 +247,11 @@ show_diskgroup(LDM * const ldm, const gint argc, gchar ** const argv,
 
     g_free(name);
 
-    GError *err = NULL;
-
-    GArray * const volumes = ldm_disk_group_get_volumes(dg, &err);
-    if (!volumes) {
-        g_warning("Error getting disk group volumes: %s", err->message);
-        return FALSE;
-    }
+    GArray * const volumes = ldm_disk_group_get_volumes(dg);
     show_json_array(jb, volumes, "volumes");
     g_array_unref(volumes);
 
-    GArray * const disks = ldm_disk_group_get_disks(dg, &err);
-    if (!disks) {
-        g_warning("Error getting disk group disks: %s", err->message);
-        return FALSE;
-    }
+    GArray * const disks = ldm_disk_group_get_disks(dg);
     show_json_array(jb, disks, "disks");
     g_array_unref(disks);
 
@@ -290,14 +270,8 @@ show_volume(LDM *const ldm, const gint argc, gchar ** const argv,
     LDMDiskGroup *dg = find_diskgroup(ldm, argv[0]);
     if (!dg) return FALSE;
 
-    GError *err = NULL;
-
-    GArray * const volumes = ldm_disk_group_get_volumes(dg, &err);
+    GArray * const volumes = ldm_disk_group_get_volumes(dg);
     g_object_unref(dg);
-    if (!volumes) {
-        g_warning("Unable to get volumes from disk group: %s", err->message);
-        return FALSE;
-    }
     gboolean found = FALSE;
     for (int i = 0; i < volumes->len; i++) {
         LDMVolume * const vol = g_array_index(volumes, LDMVolume *, i);
@@ -329,17 +303,7 @@ show_volume(LDM *const ldm, const gint argc, gchar ** const argv,
 
             json_builder_set_member_name(jb, "partitions");
             json_builder_begin_array(jb);
-            GArray * const partitions = ldm_volume_get_partitions(vol, &err);
-            if (!partitions) {
-                g_warning("Unable to get partitions from volume: %s",
-                          err->message);
-
-                g_array_unref(volumes);
-                g_free(name);
-                g_free(hint);
-
-                return FALSE;
-            }
+            GArray * const partitions = ldm_volume_get_partitions(vol);
             for (int j = 0; j < partitions->len; j++) {
                 LDMPartition * const part =
                     g_array_index(partitions, LDMPartition *, j);
@@ -373,14 +337,8 @@ show_partition(LDM *const ldm, const gint argc, gchar ** const argv,
     LDMDiskGroup *dg = find_diskgroup(ldm, argv[0]);
     if (!dg) return FALSE;
 
-    GError *err = NULL;
-
-    GArray * const parts = ldm_disk_group_get_partitions(dg, &err);
+    GArray * const parts = ldm_disk_group_get_partitions(dg);
     g_object_unref(dg);
-    if (!parts) {
-        g_warning("Unable to get partitions from disk group: %s", err->message);
-        return FALSE;
-    }
     for (int i = 0; i < parts->len; i++) {
         LDMPartition * const part = g_array_index(parts, LDMPartition *, i);
 
@@ -392,13 +350,7 @@ show_partition(LDM *const ldm, const gint argc, gchar ** const argv,
         if (g_strcmp0(name, argv[1]) == 0) {
             found = TRUE;
 
-            LDMDisk * const disk = ldm_partition_get_disk(part, &err);
-            if (!disk) {
-                g_warning("Error getting disk for partition: %s", err->message);
-                g_array_unref(parts);
-                return FALSE;
-            }
-
+            LDMDisk * const disk = ldm_partition_get_disk(part);
             gchar *diskname = ldm_disk_get_name(disk);
             g_object_unref(disk);
 
@@ -436,14 +388,8 @@ show_disk(LDM *const ldm, const gint argc, gchar ** const argv,
     LDMDiskGroup *dg = find_diskgroup(ldm, argv[0]);
     if (!dg) return FALSE;
 
-    GError *err = NULL;
-
-    GArray * const disks = ldm_disk_group_get_disks(dg, &err);
+    GArray * const disks = ldm_disk_group_get_disks(dg);
     g_object_unref(dg);
-    if (!disks) {
-        g_warning("Error getting disks for disk group: %s", err->message);
-        return FALSE;
-    }
     gboolean found = FALSE;
     for (int i = 0; i < disks->len; i++) {
         LDMDisk * const disk = g_array_index(disks, LDMDisk *, i);
@@ -522,21 +468,20 @@ _ldm_vol_action(LDM *const ldm, const gint argc, gchar ** const argv,
                 const gchar * const action_desc,
                 _usage_t const usage, _vol_action_t const action)
 {
-    GError *err = NULL;
-
     json_builder_begin_array(jb);
 
     if (argc == 1) {
         if (g_strcmp0(argv[0], "all") != 0) return (*usage)();
 
-        GArray *dgs = ldm_get_disk_groups(ldm, &err);
+        GArray *dgs = ldm_get_disk_groups(ldm);
         for (int i = 0; i < dgs->len; i++) {
             LDMDiskGroup * const dg = g_array_index(dgs, LDMDiskGroup *, i);
 
-            GArray *volumes = ldm_disk_group_get_volumes(dg, &err);
+            GArray *volumes = ldm_disk_group_get_volumes(dg);
             for (int j = 0; j < volumes->len; j++) {
                 LDMVolume * const vol = g_array_index(volumes, LDMVolume *, j);
 
+                GError *err = NULL;
                 GString *device = NULL;
                 if (!(*action)(vol, &device, &err)) {
                     gchar *vol_name = ldm_volume_get_name(vol);
@@ -566,7 +511,7 @@ _ldm_vol_action(LDM *const ldm, const gint argc, gchar ** const argv,
         LDMDiskGroup * const dg = find_diskgroup(ldm, argv[1]);
         if (!dg) return FALSE;
 
-        GArray * const volumes = ldm_disk_group_get_volumes(dg, &err);
+        GArray * const volumes = ldm_disk_group_get_volumes(dg);
         LDMVolume *vol = NULL;
         for (int i = 0; i < volumes->len; i++) {
             LDMVolume * const o = g_array_index(volumes, LDMVolume *, i);
@@ -586,6 +531,7 @@ _ldm_vol_action(LDM *const ldm, const gint argc, gchar ** const argv,
             return FALSE;
         }
 
+        GError *err = NULL;
         GString *device = NULL;
         if (!(*action)(vol, &device, &err)) {
             g_warning("Unable to %s volume %s in disk group %s: %s",
