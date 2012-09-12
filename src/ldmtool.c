@@ -185,7 +185,7 @@ ldm_scan(LDM *const ldm, const gint argc, gchar ** const argv,
 
 void
 show_json_array(JsonBuilder * const jb, const GArray * const array,
-                 const gchar * const field, const gchar * const name)
+                const gchar * const name)
 {
     json_builder_set_member_name(jb, name);
     json_builder_begin_array(jb);
@@ -193,7 +193,7 @@ show_json_array(JsonBuilder * const jb, const GArray * const array,
         GObject * const o = g_array_index(array, GObject *, i);
 
         gchar *value;
-        g_object_get(o, field, &value, NULL);
+        g_object_get(o, "name", &value, NULL);
         json_builder_add_string_value(jb, value);
         g_free(value);
     }
@@ -266,7 +266,7 @@ show_diskgroup(LDM * const ldm, const gint argc, gchar ** const argv,
         g_warning("Error getting disk group volumes: %s", err->message);
         return FALSE;
     }
-    show_json_array(jb, volumes, "name", "volumes");
+    show_json_array(jb, volumes, "volumes");
     g_array_unref(volumes);
 
     GArray * const disks = ldm_disk_group_get_disks(dg, &err);
@@ -274,7 +274,7 @@ show_diskgroup(LDM * const ldm, const gint argc, gchar ** const argv,
         g_warning("Error getting disk group disks: %s", err->message);
         return FALSE;
     }
-    show_json_array(jb, disks, "name", "disks");
+    show_json_array(jb, disks, "disks");
     g_array_unref(disks);
 
     json_builder_end_object(jb);
