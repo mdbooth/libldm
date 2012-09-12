@@ -160,12 +160,8 @@ _scan(LDM *const ldm, gboolean ignore_errors,
         for (int i = 0; i < dgs->len; i++) {
             LDMDiskGroup * const dg = g_array_index(dgs, LDMDiskGroup *, i);
 
-            gchar *guid = NULL;
-
-            g_object_get(dg, "guid", &guid, NULL);
-
+            gchar *guid = ldm_disk_group_get_guid(dg);
             json_builder_add_string_value(jb, guid);
-
             g_free(guid);
         }
         g_array_unref(dgs);
@@ -215,8 +211,7 @@ find_diskgroup(LDM * const ldm, const gchar * const guid)
         LDMDiskGroup * const dg_i =
             g_array_index(diskgroups, LDMDiskGroup *, i);
 
-        gchar *guid_i;
-        g_object_get(dg_i, "guid", &guid_i, NULL);
+        gchar *guid_i = ldm_disk_group_get_guid(dg_i);
 
         if (g_strcmp0(guid_i, guid) == 0) {
             dg = dg_i;
@@ -247,8 +242,7 @@ show_diskgroup(LDM * const ldm, const gint argc, gchar ** const argv,
     LDMDiskGroup *dg = find_diskgroup(ldm, argv[0]);
     if (!dg) return FALSE;
 
-    gchar *name;
-    g_object_get(dg, "name", &name, NULL);
+    gchar *name = ldm_disk_group_get_name(dg);
 
     json_builder_begin_object(jb);
 
@@ -303,14 +297,11 @@ show_volume(LDM *const ldm, const gint argc, gchar ** const argv,
     for (int i = 0; i < volumes->len; i++) {
         LDMVolume * const vol = g_array_index(volumes, LDMVolume *, i);
 
-        gchar *name;
-        LDMVolumeType type;
-        guint64 size;
-        guint64 chunk_size;
-        gchar *hint;
-
-        g_object_get(vol, "name", &name, "type", &type, "size", &size,
-                          "chunk-size", &chunk_size, "hint", &hint, NULL);
+        gchar *name = ldm_volume_get_name(vol);
+        LDMVolumeType type = ldm_volume_get_voltype(vol);
+        guint64 size = ldm_volume_get_size(vol);
+        guint64 chunk_size = ldm_volume_get_chunk_size(vol);
+        gchar *hint = ldm_volume_get_hint(vol);
 
         gboolean found = FALSE;
         if (g_strcmp0(name, argv[1]) == 0) {
@@ -349,12 +340,8 @@ show_volume(LDM *const ldm, const gint argc, gchar ** const argv,
                 LDMPartition * const part =
                     g_array_index(partitions, LDMPartition *, j);
 
-                gchar *partname;
-
-                g_object_get(part, "name", &partname, NULL);
-
+                gchar *partname = ldm_partition_get_name(part);
                 json_builder_add_string_value(jb, partname);
-
                 g_free(partname);
             }
             g_array_unref(partitions);
@@ -393,11 +380,9 @@ show_partition(LDM *const ldm, const gint argc, gchar ** const argv,
     for (int i = 0; i < parts->len; i++) {
         LDMPartition * const part = g_array_index(parts, LDMPartition *, i);
 
-        gchar *name;
-        guint64 start;
-        guint64 size;
-
-        g_object_get(part, "name", &name, "start", &start, "size", &size, NULL);
+        gchar *name = ldm_partition_get_name(part);
+        guint64 start = ldm_partition_get_start(part);
+        guint64 size = ldm_partition_get_size(part);
 
         gboolean found = FALSE;
         if (g_strcmp0(name, argv[1]) == 0) {
@@ -410,9 +395,7 @@ show_partition(LDM *const ldm, const gint argc, gchar ** const argv,
                 return FALSE;
             }
 
-            gchar *diskname;
-
-            g_object_get(disk, "name", &diskname, NULL);
+            gchar *diskname = ldm_disk_get_name(disk);
             g_object_unref(disk);
 
             json_builder_begin_object(jb);
@@ -461,18 +444,13 @@ show_disk(LDM *const ldm, const gint argc, gchar ** const argv,
     for (int i = 0; i < disks->len; i++) {
         LDMDisk * const disk = g_array_index(disks, LDMDisk *, i);
 
-        gchar *name;
-        gchar *guid;
-        gchar *device;
-        guint64 data_start;
-        guint64 data_size;
-        guint64 metadata_start;
-        guint64 metadata_size;
-
-        g_object_get(disk, "name", &name, "guid", &guid, "device", &device,
-                           "data-start", &data_start, "data-size", &data_size,
-                           "metadata-start", &metadata_start,
-                           "metadata-size", &metadata_size, NULL);
+        gchar *name = ldm_disk_get_name(disk);
+        gchar *guid = ldm_disk_get_guid(disk);
+        gchar *device = ldm_disk_get_device(disk);
+        guint64 data_start = ldm_disk_get_data_start(disk);
+        guint64 data_size = ldm_disk_get_data_size(disk);
+        guint64 metadata_start = ldm_disk_get_metadata_start(disk);
+        guint64 metadata_size = ldm_disk_get_metadata_size(disk);
 
         if (g_strcmp0(name, argv[1]) == 0) {
             found = TRUE;
@@ -557,11 +535,8 @@ _ldm_vol_action(LDM *const ldm, const gint argc, gchar ** const argv,
 
                 GString *device = NULL;
                 if (!(*action)(vol, &device, &err)) {
-                    gchar *vol_name;
-                    g_object_get(vol, "name", &vol_name, NULL);
-
-                    gchar *dg_guid;
-                    g_object_get(dg, "guid", &dg_guid, NULL);
+                    gchar *vol_name = ldm_volume_get_name(vol);
+                    gchar *dg_guid = ldm_disk_group_get_guid(dg);
 
                     g_warning("Unable to %s volume %s in disk group %s: %s",
                               action_desc, vol_name, dg_guid, err->message);
@@ -592,8 +567,7 @@ _ldm_vol_action(LDM *const ldm, const gint argc, gchar ** const argv,
         for (int i = 0; i < volumes->len; i++) {
             LDMVolume * const o = g_array_index(volumes, LDMVolume *, i);
 
-            gchar *name;
-            g_object_get(o, "name", &name, NULL);
+            gchar *name = ldm_volume_get_name(o);
             if (g_strcmp0(name, argv[2]) == 0) vol = o;
             g_free(name);
 
