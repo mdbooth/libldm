@@ -540,10 +540,10 @@ _ldm_vol_action(LDM *const ldm, const gint argc, gchar ** const argv,
 
                     g_warning("Unable to %s volume %s in disk group %s: %s",
                               action_desc, vol_name, dg_guid, err->message);
-                              
+
                     g_free(vol_name);
                     g_free(dg_guid);
-                    
+
                     g_error_free(err); err = NULL;
                 }
 
@@ -774,7 +774,6 @@ error:
     if (scanned) g_array_unref(scanned);
     g_object_unref(jb);
     return FALSE;
-
 }
 
 void
