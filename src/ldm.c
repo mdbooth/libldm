@@ -226,6 +226,34 @@ ldm_error_get_type(void)
     return etype;
 }
 
+/* Macros for exporting object properties */
+
+#define EXPORT_PROP_STRING(object, klass, property)                            \
+gchar *                                                                        \
+ldm_ ## object ## _get_ ## property(const klass * const o)                     \
+{                                                                              \
+    const size_t len = strlen(o->priv->property) + 1;                          \
+    gchar * const r = g_malloc(len);                                           \
+    memcpy(r, o->priv->property, len);                                         \
+    return r;                                                                  \
+}
+
+#define EXPORT_PROP_GUID(object, klass)                                        \
+gchar *                                                                        \
+ldm_ ## object ## _get_guid(const klass * const o)                             \
+{                                                                              \
+    gchar *r = g_malloc(37);                                                   \
+    uuid_unparse(o->priv->guid, r);                                            \
+    return r;                                                                  \
+}
+
+#define EXPORT_PROP_SCALAR(object, klass, property, type)                      \
+type                                                                           \
+ldm_ ## object ## _get_ ## property(const klass * const o)                     \
+{                                                                              \
+    return o->priv->property;                                                  \
+}
+
 /* LDM */
 
 #define LDM_GET_PRIVATE(obj)       (G_TYPE_INSTANCE_GET_PRIVATE \
@@ -318,6 +346,9 @@ ldm_disk_group_get_property(GObject * const o, const guint property_id,
         G_OBJECT_WARN_INVALID_PROPERTY_ID(o, property_id, pspec);
     }
 }
+
+EXPORT_PROP_STRING(disk_group, LDMDiskGroup, name)
+EXPORT_PROP_GUID(disk_group, LDMDiskGroup)
 
 static void
 ldm_disk_group_dispose(GObject * const object)
@@ -490,6 +521,19 @@ ldm_volume_get_property(GObject * const o, const guint property_id,
     default:
         G_OBJECT_WARN_INVALID_PROPERTY_ID(o, property_id, pspec);
     }
+}
+
+EXPORT_PROP_STRING(volume, LDMVolume, name)
+EXPORT_PROP_SCALAR(volume, LDMVolume, size, guint64)
+EXPORT_PROP_SCALAR(volume, LDMVolume, part_type, guint8)
+EXPORT_PROP_STRING(volume, LDMVolume, hint)
+EXPORT_PROP_SCALAR(volume, LDMVolume, chunk_size, guint64)
+
+/* Sigh... another conflict with glib's _get_type() */
+LDMVolumeType
+ldm_volume_get_voltype(const LDMVolume * const o)
+{
+    return o->priv->type;
 }
 
 static void
@@ -711,6 +755,10 @@ ldm_partition_get_property(GObject * const o, const guint property_id,
     }
 }
 
+EXPORT_PROP_STRING(partition, LDMPartition, name)
+EXPORT_PROP_SCALAR(partition, LDMPartition, start, guint64)
+EXPORT_PROP_SCALAR(partition, LDMPartition, size, guint64)
+
 static void
 ldm_partition_dispose(GObject * const object)
 {
@@ -862,6 +910,14 @@ ldm_disk_get_property(GObject * const o, const guint property_id,
         G_OBJECT_WARN_INVALID_PROPERTY_ID(o, property_id, pspec);
     }
 }
+
+EXPORT_PROP_STRING(disk, LDMDisk, name)
+EXPORT_PROP_GUID(disk, LDMDisk)
+EXPORT_PROP_STRING(disk, LDMDisk, device)
+EXPORT_PROP_SCALAR(disk, LDMDisk, data_start, guint64)
+EXPORT_PROP_SCALAR(disk, LDMDisk, data_size, guint64)
+EXPORT_PROP_SCALAR(disk, LDMDisk, metadata_start, guint64)
+EXPORT_PROP_SCALAR(disk, LDMDisk, metadata_size, guint64)
 
 static void
 ldm_disk_finalize(GObject * const object)

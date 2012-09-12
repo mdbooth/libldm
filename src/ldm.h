@@ -203,17 +203,39 @@ gboolean ldm_add_fd(LDM *o, int fd, guint secsize, const gchar *path,
                          GError **err);
 
 GArray *ldm_get_disk_groups(LDM *o, GError **err);
+
 GArray *ldm_disk_group_get_volumes(LDMDiskGroup *o, GError **err);
 GArray *ldm_disk_group_get_partitions(LDMDiskGroup *o, GError **err);
 GArray *ldm_disk_group_get_disks(LDMDiskGroup *o, GError **err);
+gchar *ldm_disk_group_get_name(const LDMDiskGroup *o);
+gchar *ldm_disk_group_get_guid(const LDMDiskGroup *o);
+
 GArray *ldm_volume_get_partitions(LDMVolume *o, GError **err);
-LDMDisk *ldm_partition_get_disk(LDMPartition *o, GError **err);
+gchar *ldm_volume_get_name(const LDMVolume *o);
+LDMVolumeType ldm_volume_get_voltype(const LDMVolume *o);
+guint64 ldm_volume_get_size(const LDMVolume *o);
+guint8 ldm_volume_get_part_type(const LDMVolume *o);
+gchar *ldm_volume_get_hint(const LDMVolume *o);
+guint64 ldm_volume_get_chunk_size(const LDMVolume *o);
 
 GString *ldm_volume_dm_get_name(const LDMVolume *o);
 gboolean ldm_volume_dm_create(const LDMVolume *o, GString **created,
                               GError **err);
 gboolean ldm_volume_dm_remove(const LDMVolume *o, GString **removed,
                               GError **err);
+
+LDMDisk *ldm_partition_get_disk(LDMPartition *o, GError **err);
+gchar *ldm_partition_get_name(const LDMPartition *o);
+guint64 ldm_partition_get_start(const LDMPartition *o);
+guint64 ldm_partition_get_size(const LDMPartition *o);
+
+gchar *ldm_disk_get_name(const LDMDisk *o);
+gchar *ldm_disk_get_guid(const LDMDisk *o);
+gchar *ldm_disk_get_device(const LDMDisk *o);
+guint64 ldm_disk_get_data_start(const LDMDisk *o);
+guint64 ldm_disk_get_data_size(const LDMDisk *o);
+guint64 ldm_disk_get_metadata_start(const LDMDisk *o);
+guint64 ldm_disk_get_metadata_size(const LDMDisk *o);
 
 G_END_DECLS
 
