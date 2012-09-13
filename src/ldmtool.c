@@ -709,9 +709,11 @@ cmdline(LDM * const ldm, gchar **devices,
         devices = (gchar **) scanned->data;
     }
 
+    JsonBuilder *jb = NULL;
+
     if (!_scan(ldm, TRUE, g_strv_length(devices), devices, NULL)) goto error;
 
-    JsonBuilder *jb = json_builder_new();
+    jb = json_builder_new();
     gboolean result;
     if (!do_command(ldm, argc, argv, &result, out, jg, jb)) {
         g_warning("Unrecognised command: %s", argv[0]);
@@ -724,7 +726,7 @@ cmdline(LDM * const ldm, gchar **devices,
 
 error:
     if (scanned) g_array_unref(scanned);
-    g_object_unref(jb);
+    if (jb) g_object_unref(jb);
     return FALSE;
 }
 
