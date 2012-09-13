@@ -43,6 +43,11 @@
                         (uuid)[8], (uuid)[9], (uuid)[10], (uuid)[11], \
                         (uuid)[12], (uuid)[13], (uuid)[14], (uuid)[15]
 
+/**
+ * SECTION:ldm
+ * @include: ldm.h
+ */
+
 /*
  * The layout here is mostly derived from:
  * http://hackipedia.org/Disk%20formats/Partition%20tables/Windows%20NT%20Logical%20Disk%20Manager/html,%20ldmdoc/index.html

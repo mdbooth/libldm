@@ -9,6 +9,7 @@
 /config.log
 /config.status
 /configure
+/gtk-doc.make
 /m4
 /libtool
 /stamp-h1
@@ -30,3 +31,26 @@ Makefile.in
 # Temporary files
 .*.swp
 *~
+
+docs/reference/*/html-build.stamp
+docs/reference/*/html.stamp
+docs/reference/*/html/
+docs/reference/*/*-decl-list.txt
+docs/reference/*/*-decl.txt
+docs/reference/*/*-docs.sgml
+docs/reference/*/*-overrides.txt
+docs/reference/*/*-sections.txt
+docs/reference/*/*-undeclared.txt
+docs/reference/*/*-undocumented.txt
+docs/reference/*/*-unused.txt
+docs/reference/*/*.args
+docs/reference/*/*.hierarchy
+docs/reference/*/*.interfaces
+docs/reference/*/*.prerequisites
+docs/reference/*/*.signals
+docs/reference/*/*.types
+docs/reference/*/scan-build.stamp
+docs/reference/*/setup-build.stamp
+docs/reference/*/sgml-build.stamp
+docs/reference/*/sgml.stamp
+docs/reference/*/xml/

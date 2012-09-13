@@ -16,4 +16,6 @@
 
 ACLOCAL_AMFLAGS = -I m4
 
-SUBDIRS = src test
+DISTCHECK_CONFIGURE_FLAGS=--enable-gtk-doc
+
+SUBDIRS = src test docs/reference/libldm

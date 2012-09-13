@@ -76,9 +76,12 @@ PKG_CHECK_MODULES([DEVMAPPER], [devmapper >= 1.0],
     ]
 )
 
+GTK_DOC_CHECK([1.14])
+
 # Checks for library functions.
 
 AC_CONFIG_FILES([Makefile])
 AC_CONFIG_FILES([src/Makefile])
 AC_CONFIG_FILES([test/Makefile])
+AC_CONFIG_FILES([docs/reference/libldm/Makefile])
 AC_OUTPUT
