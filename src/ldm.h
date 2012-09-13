@@ -53,7 +53,7 @@ GType ldm_error_get_type(void);
 /* LDM */
 
 #define LDM_TYPE            (ldm_get_type())
-#define LDM(obj)            (G_TYPE_CHECK_INSTANCE_CAST \
+#define LDM_CAST(obj)       (G_TYPE_CHECK_INSTANCE_CAST \
                                         ((obj), LDM_TYPE, LDM))
 #define LDM_CLASS(klass)    (G_TYPE_CHECK_CLASS_CAST \
                                         ((klass), LDM_TYPE, LDMClass))

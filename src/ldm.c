@@ -269,7 +269,7 @@ G_DEFINE_TYPE(LDM, ldm, G_TYPE_OBJECT)
 static void
 ldm_dispose(GObject * const object)
 {
-    LDM *ldm = LDM(object);
+    LDM *ldm = LDM_CAST(object);
 
     if (ldm->priv->disk_groups) {
         g_array_unref(ldm->priv->disk_groups); ldm->priv->disk_groups = NULL;
@@ -2292,7 +2292,7 @@ error:
 LDM *
 ldm_new()
 {
-    LDM *ldm = LDM(g_object_new(LDM_TYPE, NULL));
+    LDM *ldm = LDM_CAST(g_object_new(LDM_TYPE, NULL));
     ldm->priv->disk_groups = g_array_sized_new(FALSE, FALSE,
                                                sizeof (LDMDiskGroup *), 1);
     g_array_set_clear_func(ldm->priv->disk_groups, _unref_object);
