@@ -259,7 +259,7 @@ ldm_ ## object ## _get_ ## property(const klass * const o)                     \
 #define LDM_GET_PRIVATE(obj)       (G_TYPE_INSTANCE_GET_PRIVATE \
         ((obj), LDM_TYPE, LDMPrivate))
 
-struct _LDM
+struct _LDMPrivate
 {
     GArray *disk_groups;
 };
@@ -297,7 +297,7 @@ ldm_class_init(LDMClass * const klass)
 #define LDM_DISK_GROUP_GET_PRIVATE(obj)    (G_TYPE_INSTANCE_GET_PRIVATE \
         ((obj), LDM_TYPE_DISK_GROUP, LDMDiskGroupPrivate))
 
-struct _LDMDiskGroup
+struct _LDMDiskGroupPrivate
 {
     uuid_t guid;
     uint32_t id;
@@ -454,7 +454,7 @@ typedef enum {
     _VOLUME_TYPE_RAID5 = 0x4
 } _int_volume_type;
 
-struct _LDMVolume
+struct _LDMVolumePrivate
 {
     guint32 id;
     gchar *name;
@@ -709,7 +709,7 @@ _cleanup_comp(gpointer const data)
 #define LDM_PARTITION_GET_PRIVATE(obj) (G_TYPE_INSTANCE_GET_PRIVATE \
         ((obj), LDM_TYPE_PARTITION, LDMPartitionPrivate))
 
-struct _LDMPartition
+struct _LDMPartitionPrivate
 {
     guint32 id;
     guint32 parent_id;
@@ -844,7 +844,7 @@ ldm_partition_init(LDMPartition * const o)
 #define LDM_DISK_GET_PRIVATE(obj) (G_TYPE_INSTANCE_GET_PRIVATE \
         ((obj), LDM_TYPE_DISK, LDMDiskPrivate))
 
-struct _LDMDisk
+struct _LDMDiskPrivate
 {
     guint32 id;
     gchar *name;

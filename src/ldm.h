@@ -63,13 +63,14 @@ GType ldm_error_get_type(void);
                                         ((klass), LDM_TYPE))
 #define LDM_GET_CLASS(obj)  (G_TYPE_INSTANCE_GET_CLASS \
                                         ((obj), LDM_TYPE, LDMClass))
+typedef struct _LDMPrivate LDMPrivate;
 
-typedef struct _LDM LDMPrivate;
-typedef struct
+typedef struct _LDM LDM;
+struct _LDM
 {
     GObject parent;
-    struct _LDM *priv;
-} LDM;
+    LDMPrivate *priv;
+};
 
 typedef struct
 {
@@ -90,12 +91,14 @@ typedef struct
 #define LDM_DISK_GROUP_GET_CLASS(obj)  (G_TYPE_INSTANCE_GET_CLASS \
         ((obj), LDM_TYPE_DISK_GROUP, LDMDiskGroupClass))
 
-typedef struct _LDMDiskGroup LDMDiskGroupPrivate;
-typedef struct
+typedef struct _LDMDiskGroupPrivate LDMDiskGroupPrivate;
+
+typedef struct _LDMDiskGroup LDMDiskGroup;
+struct _LDMDiskGroup
 {
     GObject parent;
     LDMDiskGroupPrivate *priv;
-} LDMDiskGroup;
+};
 
 typedef struct
 {
@@ -130,12 +133,14 @@ GType ldm_volume_type_get_type(void);
 #define LDM_VOLUME_GET_CLASS(obj)  (G_TYPE_INSTANCE_GET_CLASS \
         ((obj), LDM_TYPE_VOLUME, LDMVolumeClass))
 
-typedef struct _LDMVolume LDMVolumePrivate;
-typedef struct
+typedef struct _LDMVolumePrivate LDMVolumePrivate;
+
+typedef struct _LDMVolume LDMVolume;
+struct _LDMVolume
 {
     GObject parent;
     LDMVolumePrivate *priv;
-} LDMVolume;
+};
 
 typedef struct
 {
@@ -156,12 +161,14 @@ typedef struct
 #define LDM_PARTITION_GET_CLASS(obj)  (G_TYPE_INSTANCE_GET_CLASS \
         ((obj), LDM_TYPE_PARTITION, LDMPartitionClass))
 
-typedef struct _LDMPartition LDMPartitionPrivate;
-typedef struct
+typedef struct _LDMPartitionPrivate LDMPartitionPrivate;
+
+typedef struct _LDMPartition LDMPartition;
+struct _LDMPartition
 {
     GObject parent;
     LDMPartitionPrivate *priv;
-} LDMPartition;
+};
 
 typedef struct
 {
@@ -182,12 +189,14 @@ typedef struct
 #define LDM_DISK_GET_CLASS(obj)  (G_TYPE_INSTANCE_GET_CLASS \
         ((obj), LDM_TYPE_DISK, LDMDiskClass))
 
-typedef struct _LDMDisk LDMDiskPrivate;
-typedef struct
+typedef struct _LDMDiskPrivate LDMDiskPrivate;
+
+typedef struct _LDMDisk LDMDisk;
+struct _LDMDisk
 {
     GObject parent;
     LDMDiskPrivate *priv;
-} LDMDisk;
+};
 
 typedef struct
 {
