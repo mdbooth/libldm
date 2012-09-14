@@ -18,15 +18,15 @@ AM_CFLAGS = -Wall -Werror
 
 lib_LTLIBRARIES = libldm-1.0.la
 
-libldm_ladir = $(includedir)/libldm
-libldm_la_HEADERS = ldm.h
-libldm_la_SOURCES = mbr.c mbr.h gpt.c gpt.h ldm.c
-libldm_la_CFLAGS = $(AM_CFLAGS) $(GOBJECT_CFLAGS)
-libldm_la_LIBADD = -lz -luuid $(GOBJECT_LIBS)
+libldm_1_0_ladir = $(includedir)/libldm
+libldm_1_0_la_HEADERS = ldm.h
+libldm_1_0_la_SOURCES = mbr.c mbr.h gpt.c gpt.h ldm.c
+libldm_1_0_la_CFLAGS = $(AM_CFLAGS) $(GOBJECT_CFLAGS) $(DEVMAPPER_CFLAGS)
+libldm_1_0_la_LIBADD = -lz -luuid $(GOBJECT_LIBS) $(DEVMAPPER_LIBS)
 
 bin_PROGRAMS = ldmtool
 
 ldmtool_CFLAGS = $(AM_CFLAGS) $(GOBJECT_CFLAGS) $(JSON_CFLAGS) \
-		 $(GIO_UNIX_CFLAGS) $(DEVMAPPER_CFLAGS)
-ldmtool_LDADD = -lreadline $(builddir)/libldm-1.0.la \
-		$(GOBJECT_LIBS) $(JSON_LIBS) $(GIO_UNIX_LIBS) $(DEVMAPPER_LIBS)
+		 $(GIO_UNIX_CFLAGS)
+ldmtool_LDADD = -lreadline $(builddir)/libldm-1.0.la $(GOBJECT_LIBS) \
+		$(JSON_LIBS) $(GIO_UNIX_LIBS)
