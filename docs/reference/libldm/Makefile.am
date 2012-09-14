@@ -74,7 +74,7 @@ expand_content_files=
 # e.g. GTKDOC_CFLAGS=-I$(top_srcdir) -I$(top_builddir) $(GTK_DEBUG_FLAGS)
 # e.g. GTKDOC_LIBS=$(top_builddir)/gtk/$(gtktargetlib)
 GTKDOC_CFLAGS=$(DEVMAPPER_LIBS)
-GTKDOC_LIBS=$(top_builddir)/src/libldm.la $(DEVMAPPER_LIBS)
+GTKDOC_LIBS=$(top_builddir)/src/libldm-1.0.la $(DEVMAPPER_LIBS)
 
 # This includes the standard gtk-doc make rules, copied by gtkdocize.
 include $(top_srcdir)/gtk-doc.make

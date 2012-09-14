@@ -19,10 +19,10 @@ AM_CFLAGS = -Wall -Werror
 check_PROGRAMS = partread ldmread
 
 partread_CFLAGS = $(AM_CFLAGS) -I$(top_srcdir)/src
-partread_LDADD = $(top_builddir)/src/libldm.la $(DEVMAPPER_LIBS)
+partread_LDADD = $(top_builddir)/src/libldm-1.0.la $(DEVMAPPER_LIBS)
 
 ldmread_CFLAGS = $(AM_CFLAGS) -I$(top_srcdir)/src $(GOBJECT_CFLAGS)
-ldmread_LDADD = $(top_builddir)/src/libldm.la $(DEVMAPPER_LIBS)
+ldmread_LDADD = $(top_builddir)/src/libldm-1.0.la $(DEVMAPPER_LIBS)
 
 2003R2_DG = 03c0c4fc-8b6f-402b-9431-4be2e5823b1c
 2008R2_DG = 06495a84-fbfd-11e1-8cf9-52540061f5db

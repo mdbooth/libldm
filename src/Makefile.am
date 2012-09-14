@@ -16,7 +16,7 @@
 
 AM_CFLAGS = -Wall -Werror
 
-lib_LTLIBRARIES = libldm.la
+lib_LTLIBRARIES = libldm-1.0.la
 
 libldm_ladir = $(includedir)/libldm
 libldm_la_HEADERS = ldm.h
@@ -28,5 +28,5 @@ bin_PROGRAMS = ldmtool
 
 ldmtool_CFLAGS = $(AM_CFLAGS) $(GOBJECT_CFLAGS) $(JSON_CFLAGS) \
 		 $(GIO_UNIX_CFLAGS) $(DEVMAPPER_CFLAGS)
-ldmtool_LDADD = -lreadline $(builddir)/libldm.la \
+ldmtool_LDADD = -lreadline $(builddir)/libldm-1.0.la \
 		$(GOBJECT_LIBS) $(JSON_LIBS) $(GIO_UNIX_LIBS) $(DEVMAPPER_LIBS)
