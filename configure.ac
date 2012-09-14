@@ -75,7 +75,7 @@ PKG_CHECK_MODULES([DEVMAPPER], [devmapper >= 1.0],
     ]
 )
 
-GTK_DOC_CHECK([1.14])
+GTK_DOC_CHECK([1.14], [--flavour no-tmpl])
 
 # Checks for library functions.
 
