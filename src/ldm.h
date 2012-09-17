@@ -409,7 +409,7 @@ guint8 ldm_volume_get_part_type(const LDMVolume *o);
  * ldm_volume_get_hint:
  * @o: An #LDMVolume
  *
- * Get the volume mounting hint. This value where how Windows expects the
+ * Get the volume mounting hint. This value specifies how Windows expects the
  * volume to be mounted. For a volume with an assigned drive letter, it might be
  * 'E:'.
  *
