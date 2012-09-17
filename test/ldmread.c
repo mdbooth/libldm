@@ -31,11 +31,11 @@ int main(int argc, const char *argv[])
 
     g_type_init();
 
-    GError *err = NULL;
-    LDM *ldm = ldm_new(&err);
+    LDM *ldm = ldm_new();
 
     const char **disk = &argv[1];
     while(*disk) {
+        GError *err = NULL;
         if (!ldm_add(ldm, *disk, &err)) {
             fprintf(stderr, "Error reading LDM: %s\n", err->message);
             g_object_unref(ldm);
@@ -46,7 +46,7 @@ int main(int argc, const char *argv[])
         disk++;
     }
 
-    GArray *dgs = ldm_get_disk_groups(ldm, &err);
+    GArray *dgs = ldm_get_disk_groups(ldm);
     for (int i = 0; i < dgs->len; i++) {
         LDMDiskGroup * const dg = g_array_index(dgs, LDMDiskGroup *, i);
 
@@ -63,7 +63,7 @@ int main(int argc, const char *argv[])
             g_free(name);
         }
 
-        GArray *vols = ldm_disk_group_get_volumes(dg, &err);
+        GArray *vols = ldm_disk_group_get_volumes(dg);
         for (int j = 0; j < vols->len; j++) {
             LDMVolume * const vol = g_array_index(vols, LDMVolume *, j);
 
@@ -95,7 +95,7 @@ int main(int argc, const char *argv[])
                 g_free(hint);
             }
 
-            GArray *parts = ldm_volume_get_partitions(vol, &err);
+            GArray *parts = ldm_volume_get_partitions(vol);
             for (int k = 0; k < parts->len; k++) {
                 LDMPartition * const part =
                     g_array_index(parts, LDMPartition *, k);
@@ -115,7 +115,7 @@ int main(int argc, const char *argv[])
                     g_free(name);
                 }
 
-                LDMDisk * const disk = ldm_partition_get_disk(part, &err);
+                LDMDisk * const disk = ldm_partition_get_disk(part);
 
                 {
                     gchar *name;
