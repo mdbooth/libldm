@@ -75,6 +75,8 @@ PKG_CHECK_MODULES([DEVMAPPER], [devmapper >= 1.0],
     ]
 )
 
+# GObject Introspection is not working. See comment in src/Makefile.am
+# GOBJECT_INTROSPECTION_CHECK([1.30.0])
 GTK_DOC_CHECK([1.14], [--flavour no-tmpl])
 
 # Checks for library functions.

@@ -16,7 +16,8 @@
 
 AM_CFLAGS = -Wall -Werror
 
-lib_LTLIBRARIES = libldm-1.0.la
+libname = libldm-1.0.la
+lib_LTLIBRARIES = $(libname)
 
 libldm_1_0_ladir = $(includedir)/libldm
 libldm_1_0_la_HEADERS = ldm.h
@@ -28,5 +29,30 @@ bin_PROGRAMS = ldmtool
 
 ldmtool_CFLAGS = $(AM_CFLAGS) $(GOBJECT_CFLAGS) $(JSON_CFLAGS) \
 		 $(GIO_UNIX_CFLAGS)
-ldmtool_LDADD = -lreadline $(builddir)/libldm-1.0.la $(GOBJECT_LIBS) \
+ldmtool_LDADD = -lreadline $(builddir)/$(libname) $(GOBJECT_LIBS) \
 		$(JSON_LIBS) $(GIO_UNIX_LIBS)
+
+# GObject introspection fails. This seems to be because g-ir-scanner incorrectly
+# guesses the symbol prefix as 'l_dm', although explicitly passing in the
+# correct prefix causes it not to recognise any of the objects name symbols. I'm
+# fairly sure this is going to require a fix in g-ir-scanner.
+
+#include $(INTROSPECTION_MAKEFILE)
+#
+#INTROSPECTION_GIRS = LDM-1.0.gir
+#INTROSPECTION_SCANNER_ARGS = --add-include-path=$(srcdir) --warn-all
+#INTROSPECTION_COMPILER_ARGS = --includedir=$(srcdir)
+#
+#introspection_sources = ldm.h ldm.c
+#
+#LDM-1.0.gir: $(libname)
+#LDM_1_0_gir_INCLUDES = GObject-2.0
+#LDM_1_0_gir_CFLAGS = $(INCLUDES) -I$(srcdir)
+#LDM_1_0_gir_LIBS = $(libname)
+#LDM_1_0_gir_FILES = $(patsubst %,$(srcdir)/%,$(introspection_sources))
+#
+#girdir = $(datadir)/gir-1.0
+#gir_DATA = $(INTROSPECTION_GIRS)
+#
+#typelibdir = $(libdir)/girepository-1.0
+#typelib_DATA = $(INTROSPECTION_GIRS:.gir=.typelib)
