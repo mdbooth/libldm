@@ -14,6 +14,12 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+libname=libldm-1.0.la
+lib=$(top_builddir)/src/$(libname)
+
+# We include built sgml and html in dist
+dist-hook: sgml-build.stamp html-build.stamp
+
 # We require automake 1.6 at least.
 AUTOMAKE_OPTIONS = 1.6
 
@@ -23,6 +29,13 @@ DOC_MODULE=libldm
 # Uncomment for versioned docs and specify the version of the module, e.g. '2'.
 #DOC_MODULE_VERSION=2
 
+# Introduce an explicit dependency on the library. This ensure that the docs
+# will be rebuilt if the library is updated, and that the docs build will
+# succeed if the library hasn't been built yet.
+# This is required for distcheck to succeed on a fresh checkout.
+scan-build.stamp: $(lib)
+$(lib):
+	$(MAKE) $(AM_MAKEFLAGS) -C $(top_srcdir)/src $(libname)
 
 # The top-level SGML file. You can change this if you want to.
 DOC_MAIN_SGML_FILE=$(DOC_MODULE)-docs.sgml
@@ -88,7 +101,7 @@ expand_content_files=
 # e.g. GTKDOC_CFLAGS=-I$(top_srcdir) -I$(top_builddir) $(GTK_DEBUG_FLAGS)
 # e.g. GTKDOC_LIBS=$(top_builddir)/gtk/$(gtktargetlib)
 GTKDOC_CFLAGS=$(DEVMAPPER_LIBS)
-GTKDOC_LIBS=$(top_builddir)/src/libldm-1.0.la $(DEVMAPPER_LIBS)
+GTKDOC_LIBS=$(lib) $(DEVMAPPER_LIBS)
 
 # This includes the standard gtk-doc make rules, copied by gtkdocize.
 include $(top_srcdir)/gtk-doc.make
