@@ -1,0 +1,23 @@
+# gtk-doc spam
+/html-build.stamp
+/html.stamp
+/html/
+/*-decl-list.txt
+/*-decl.txt
+/*-docs.sgml
+/*-overrides.txt
+/*-sections.txt
+/*-undeclared.txt
+/*-undocumented.txt
+/*-unused.txt
+/*.args
+/*.hierarchy
+/*.interfaces
+/*.prerequisites
+/*.signals
+/*.types
+/scan-build.stamp
+/setup-build.stamp
+/sgml-build.stamp
+/sgml.stamp
+/xml/
