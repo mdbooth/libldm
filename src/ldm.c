@@ -2977,7 +2977,7 @@ ldm_volume_dm_remove(const LDMVolume * const o, GString **removed,
     const LDMVolumePrivate * const vol = o->priv;
 
     struct dm_tree *tree = _get_device_tree(err);
-    if (!err) return FALSE;
+    if (!tree) return FALSE;
 
     gboolean r = FALSE;
 
