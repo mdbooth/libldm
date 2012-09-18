@@ -1,6 +1,4 @@
-# Build artifacts
-.libs/
-.deps/
+# Specific build artifacts
 /aclocal.m4
 /autom4te.cache/
 /build-aux/
@@ -10,9 +8,16 @@
 /config.status
 /configure
 /gtk-doc.make
-/m4
+/ldm-1.0.pc
+/libldm-0.1/
+/libldm-0.1.tar.gz
 /libtool
+/m4
 /stamp-h1
+
+# Generic build artifacts
+.libs/
+.deps/
 Makefile
 Makefile.in
 
