@@ -14,8 +14,10 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-ACLOCAL_AMFLAGS = -I m4
+man_MANS = ldmtool.1
 
-DISTCHECK_CONFIGURE_FLAGS=--enable-gtk-doc
+%.1: %.xml
+	@XSLTPROC@ -nonet http://docbook.sourceforge.net/release/xsl/current/manpages/docbook.xsl $<
 
-SUBDIRS = src test docs/reference/libldm docs/reference/ldmtool
+BUILT_EXTRA_DIST = $(man_MANS)
+EXTRA_DIST = ldmtool.xml

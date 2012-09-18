@@ -21,6 +21,8 @@ AC_CONFIG_SRCDIR([src/ldm.c])
 AC_CONFIG_HEADERS([config.h])
 AM_INIT_AUTOMAKE([foreign])
 
+AC_PATH_PROG([XSLTPROC], [xsltproc])
+
 m4_ifndef([AM_SILENT_RULES], [m4_define([AM_SILENT_RULES],[])])
 AM_SILENT_RULES([yes]) # make --enable-silent-rules the default.
 
@@ -85,4 +87,5 @@ AC_CONFIG_FILES([Makefile])
 AC_CONFIG_FILES([src/Makefile])
 AC_CONFIG_FILES([test/Makefile])
 AC_CONFIG_FILES([docs/reference/libldm/Makefile])
+AC_CONFIG_FILES([docs/reference/ldmtool/Makefile])
 AC_OUTPUT

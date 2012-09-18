@@ -1,0 +1,703 @@
+<refentry id="ldmtool" lang="en">
+
+<info>
+    <productname>ldmtool</productname>
+    <author>
+        <personname>
+            <firstname>Matthew</firstname>
+            <surname>Booth</surname>
+        </personname>
+        <email>mbooth@redhat.com</email>
+        <personblurb>Primary developer</personblurb>
+    </author>
+</info>
+
+<refmeta>
+    <refentrytitle>ldmtool</refentrytitle>
+    <manvolnum>1</manvolnum>
+    <refmiscinfo class="manual">User Commands</refmiscinfo>
+</refmeta>
+
+<refnamediv>
+    <refname>ldmtool</refname>
+    <refpurpose>A tool to manage Microsoft Windows dynamic disks</refpurpose>
+</refnamediv>
+
+<refsynopsisdiv>
+    <cmdsynopsis>
+        <command>ldmtool</command>
+        <arg choice='opt'>options</arg>
+    </cmdsynopsis>
+
+    <cmdsynopsis>
+        <command>ldmtool</command>
+        <arg choice='opt'>options</arg>
+        <arg choice='plain'>scan</arg>
+        <arg choice='opt' rep='repeat'><replaceable>device</replaceable></arg>
+    </cmdsynopsis>
+
+    <cmdsynopsis>
+        <command>ldmtool</command>
+        <arg choice='opt'>options</arg>
+        <arg choice='plain'>show</arg>
+        <arg choice='plain'>diskgroup</arg>
+        <arg choice='req'><replaceable>disk group GUID</replaceable></arg>
+    </cmdsynopsis>
+
+    <cmdsynopsis>
+        <command>ldmtool</command>
+        <arg choice='opt'>options</arg>
+        <arg choice='plain'>show</arg>
+        <group choice='req'>
+            <arg choice='plain'>volume</arg>
+            <arg choice='plain'>partition</arg>
+            <arg choice='plain'>disk</arg>
+        </group>
+        <arg choice='req'><replaceable>disk group GUID</replaceable></arg>
+        <arg choice='req'><replaceable>object name</replaceable></arg>
+    </cmdsynopsis>
+
+    <cmdsynopsis>
+        <command>ldmtool</command>
+        <arg choice='opt'>options</arg>
+        <group choice='req'>
+            <arg choice='plain'>create</arg>
+            <arg choice='plain'>remove</arg>
+        </group>
+        <arg choice='plain'>all</arg>
+    </cmdsynopsis>
+
+    <cmdsynopsis>
+        <command>ldmtool</command>
+        <arg choice='opt'>options</arg>
+        <group choice='req'>
+            <arg choice='plain'>create</arg>
+            <arg choice='plain'>remove</arg>
+        </group>
+        <arg choice='plain'>volume</arg>
+        <arg choice='req'><replaceable>disk group GUID</replaceable></arg>
+        <arg choice='req'><replaceable>volume name</replaceable></arg>
+    </cmdsynopsis>
+</refsynopsisdiv>
+
+<refsect1>
+    <title>Options</title>
+
+    <variablelist>
+        <varlistentry>
+            <term>
+                <option>-d|--device</option> <replaceable>device</replaceable>
+            </term>
+            <listitem>
+                <para>
+                Automatically scan <replaceable>device</replaceable>.
+                </para>
+            </listitem>
+        </varlistentry>
+    </variablelist>
+</refsect1>
+
+<refsect1>
+    <title>Description</title>
+
+    <para>
+    <command>ldmtool</command> is a tool for managing Microsoft Windows dynamic
+    disks, which use Microsoft's LDM metadata. It can inspect them, and also
+    create and remove device-mapper block devices which can be mounted.
+    </para>
+
+    <para>
+    Although a filesystem can be mounted read-write and its contents modified,
+    <command>ldmtool</command> is not able to modify the LDM metadata itself.
+    That is, it cannot create, remove or edit dynamic disks.
+    </para>
+
+    <para>
+    It is also not able to mount RAID5 volumes which have a partition missing,
+    although it can mount mirrored volumes with a partition missing. However,
+    mounting a volume with a missing partition is not recommended, as ldmtool
+    does not update the LDM metadata in any way. This means Windows will have no
+    way to determine that the partitions are not synchronised when it
+    subsequently mounted, which may result in corruption.
+    </para>
+</refsect1>
+
+<refsect1>
+    <title>Invocation</title>
+
+    <para>
+    <command>ldmtool</command> can be invoked either as a shell to run multiple
+    actions, or to run a single action and return. If an action is given on the
+    command line it will run in single action mode. If no action is given it
+    will launch a shell.
+    </para>
+
+    <refsect2>
+        <title>Shell mode</title>
+
+        <para>
+        When invoked as a shell, <command>ldmtool</command> will not scan any
+        block devices by default. If any block devices are given on the command
+        line with the <option>-d</option> option, these will be scanned.
+        Otherwise, block devices must be scanned explicitly with the
+        <option>scan</option> action.
+        </para>
+
+        <para>
+        Exit shell mode by sending an <literal>EOF</literal>, or with the
+        <literal>quit</literal> or <literal>exit</literal> actions.
+        </para>
+    </refsect2>
+
+    <refsect2>
+        <title>Single action mode</title>
+        
+        <para>
+        When invoked to run a single action all block devices will be scanned by
+        default. In this case, if any block devices are specified with the
+        <option>-d</option> option, only those block devices will be scanned.
+        </para>
+    </refsect2>
+</refsect1>
+
+<refsect1>
+    <title>Results</title>
+
+    <para>
+    <command>ldmtool</command> returns results as JSON-formatted data. The
+    precise data returned is described in detail below. If a command fails it
+    will not return any JSON data, but will instead display an error message. In
+    shell mode, failure can be detected by the lack of a JSON-formatted result.
+    In single action mode the caller can additionally check the exit code of the
+    command.
+    </para>
+</refsect1>
+
+<refsect1>
+    <title>Actions</title>
+
+    <refsect2>
+        <title>
+            <command>scan</command>
+            <arg choice='opt' rep='repeat'>device</arg>
+        </title>
+
+        <para>
+        Scan all <arg>device</arg>s for LDM metadata.
+        </para>
+
+        <para>
+        Returns a list of all known disk group GUIDs. Note that it doesn't just
+        return newly discovered disk groups.
+        </para>
+    </refsect2>
+
+    <refsect2>
+        <title>
+            <command>show</command> diskgroup
+            <arg choice='req'><replaceable>GUID</replaceable></arg>
+        </title>
+
+        <para>
+        Return detailed information about a single disk group.
+        </para>
+
+        <variablelist>
+          <title>Returns:</title>
+
+          <varlistentry>
+              <term>name</term>
+              <listitem>
+                  <para>The human-readable name of the disk group</para>
+              </listitem>
+          </varlistentry>
+          <varlistentry>
+              <term>guid</term>
+              <listitem>
+                  <para>The Windows-assigned GUID of the disk group</para>
+              </listitem>
+          </varlistentry>
+          <varlistentry>
+              <term>volumes</term>
+              <listitem>
+                  <para>
+                  A list of the names of all volumes in the disk group
+                  </para>
+              </listitem>
+          </varlistentry>
+          <varlistentry>
+              <term>disks</term>
+              <listitem>
+                  <para>A list of the name of all disks in the disk group</para>
+              </listitem>
+          </varlistentry>
+        </variablelist>
+    </refsect2>
+
+    <refsect2>
+        <title>
+            <command>show</command> volume
+            <arg choice='req'><replaceable>disk group GUID</replaceable></arg>
+            <arg choice='req'><replaceable>volume name</replaceable></arg>
+        </title>
+
+        <para>
+        Return detailed information about a volume.
+        </para>
+
+        <variablelist>
+            <title>Returns:</title>
+
+            <varlistentry>
+                <term>name</term>
+                <listitem>
+                    <para>The name of the volume</para>
+                </listitem>
+            </varlistentry>
+            <varlistentry>
+                <term>type</term>
+                <listitem>
+                    <para>
+                    The volume type. One of:
+                    <simplelist type='inline'>
+                        <member>
+                            <literal>simple</literal>
+                        </member>
+                        <member>
+                            <literal>spanned</literal>
+                        </member>
+                        <member>
+                            <literal>striped</literal>
+                        </member>
+                        <member>
+                            <literal>mirrored</literal>
+                        </member>
+                        <member>
+                            <literal>raid5</literal>
+                        </member>
+                    </simplelist>
+                    </para>
+                </listitem>
+            </varlistentry>
+            <varlistentry>
+                <term>size</term>
+                <listitem>
+                    <para>The size of the volume in sectors</para>
+                </listitem>
+            </varlistentry>
+            <varlistentry>
+                <term>chunk-size</term>
+                <listitem>
+                    <para>
+                    The chunk size, in sectors, used by
+                    <literal>striped</literal> and <literal>raid5</literal>
+                    volumes. For other volume types it will be
+                    <literal>0</literal>.
+                    </para>
+                </listitem>
+            </varlistentry>
+            <varlistentry>
+                <term>hint</term>
+                <listitem>
+                    <para>
+                    The volume mounting hint. This value specifies how Windows
+                    expects the volume to be mounted. For a volume with an
+                    assigned drive letter, it might be 'E:'.
+                    </para>
+                </listitem>
+            </varlistentry>
+            <varlistentry>
+                <term>partitions</term>
+                <listitem>
+                    <para>
+                    A list of the names of the partitions which constitute this
+                    volume.
+                    </para>
+                </listitem>
+            </varlistentry>
+        </variablelist>
+    </refsect2>
+
+    <refsect2>
+        <title>
+            <command>show</command> partition
+            <arg choice='req'><replaceable>disk group GUID</replaceable></arg>
+            <arg choice='req'><replaceable>partition name</replaceable></arg>
+        </title>
+
+        <para>
+        Return detailed information about a partition.
+        </para>
+
+        <variablelist>
+            <title>Returns:</title>
+
+            <varlistentry>
+                <term>name</term>
+                <listitem>
+                    <para>The name of the partition</para>
+                </listitem>
+            </varlistentry>
+            <varlistentry>
+                <term>start</term>
+                <listitem>
+                    <para>
+                    The offset, in sectors, of the start of the partition from
+                    the beginning of the disk
+                    </para>
+                </listitem>
+            </varlistentry>
+            <varlistentry>
+                <term>size</term>
+                <listitem>
+                    <para>The size of the partition in sectors</para>
+                </listitem>
+            </varlistentry>
+            <varlistentry>
+                <term>disk</term>
+                <listitem>
+                    <para>The name of the disk the partition is on</para>
+                </listitem>
+            </varlistentry>
+        </variablelist>
+    </refsect2>
+
+    <refsect2>
+        <title>
+            <command>show</command> disk
+            <arg choice='req'><replaceable>disk group GUID</replaceable></arg>
+            <arg choice='req'><replaceable>disk name</replaceable></arg>
+        </title>
+
+        <para>
+        Return detailed information about a disk.
+        </para>
+
+        <variablelist>
+            <title>Returns:</title>
+
+            <varlistentry>
+                <term>name</term>
+                <listitem>
+                    <para>The human-readable name of the disk</para>
+                </listitem>
+            </varlistentry>
+            <varlistentry>
+                <term>guid</term>
+                <listitem>
+                    <para>The GUID of the disk</para>
+                </listitem>
+            </varlistentry>
+            <varlistentry>
+                <term>present</term>
+                <listitem>
+                    <para>
+                    Whether the disk has been discovered during scanning:
+                    <literal>true</literal> or <literal>false</literal>
+                    </para>
+                </listitem>
+            </varlistentry>
+        </variablelist>
+
+        <variablelist>
+            <title>If the disk is present, additionally returns:</title>
+            <varlistentry>
+                <term>device</term>
+                <listitem>
+                    <para>The name of the host device (e.g. /dev/sda)</para>
+                </listitem>
+            </varlistentry>
+            <varlistentry>
+                <term>data-start</term>
+                <listitem>
+                    <para>
+                    The start sector of the data portion of the disk
+                    </para>
+                </listitem>
+            </varlistentry>
+            <varlistentry>
+                <term>data-size</term>
+                <listitem>
+                    <para>
+                    The size, in sectors, of the data portion of the disk
+                    </para>
+                </listitem>
+            </varlistentry>
+            <varlistentry>
+                <term>metadata-start</term>
+                <listitem>
+                    <para>
+                    The start sector of the metadata portion of the disk
+                    </para>
+                </listitem>
+            </varlistentry>
+            <varlistentry>
+                <term>metadata-size</term>
+                <listitem>
+                    <para>
+                    The size, in sectors, of the metadata portion of the disk
+                    </para>
+                </listitem>
+            </varlistentry>
+        </variablelist>
+    </refsect2>
+
+    <refsect2>
+        <title>
+            <command>create</command>
+            <group choice='req'>
+                <arg choice='plain'>
+                    <arg choice='plain'>volume</arg>
+                    <arg choice='req'>
+                        <replaceable>disk group GUID</replaceable>
+                    </arg>
+                    <arg choice='req'>
+                        <replaceable>volume name</replaceable>
+                    </arg>
+                </arg>
+                <arg choice='plain'>all</arg>
+            </group>
+        </title>
+
+        <para>
+        Create a device-mapper device for either the specified volume or all
+        volumes in all detected disk groups.
+        </para>
+
+        <para>
+        Returns a list of the device-mapper device names which were created by
+        this action. Note that if a device already existed for a volume it will
+        not be returned in this list.
+        </para>
+    </refsect2>
+
+    <refsect2>
+        <title>
+            <command>remove</command>
+            <group choice='req'>
+                <arg choice='plain'>
+                    <arg choice='plain'>volume</arg>
+                    <arg choice='req'>
+                        <replaceable>disk group GUID</replaceable>
+                    </arg>
+                    <arg choice='req'>
+                        <replaceable>volume name</replaceable>
+                    </arg>
+                </arg>
+                <arg choice='plain'>all</arg>
+            </group>
+        </title>
+
+        <para>
+        Remove device-mapper devices for either the specified volume or all
+        volumes in all detected disk groups.
+        </para>
+
+        <para>
+        Returns a list of the device-mapper device names which were removed by
+        this action. Note that if no device existed for a volume it will not be
+        returned in this list.
+        </para>
+    </refsect2>
+</refsect1>
+
+<refsect1>
+    <title>Examples</title>
+
+    <para>
+    The following examples form a sequence from a single session of ldmtool
+running in shell mode.
+    </para>
+
+    <para>
+    Scan all loop devices for LDM metadata:
+    </para>
+
+    <screen>
+<![CDATA[
+ldm> scan /dev/loop[0-9]*
+[
+  "03c0c4fc-8b6f-402b-9431-4be2e5823b1c",
+  "06495a84-fbfd-11e1-8cf9-52540061f5db"
+]
+]]>
+    </screen>
+
+    <para>
+    Two disk groups were detected. The list contains their GUIDs.
+    </para>
+
+    <para>
+    Show detailed information about one of the disk groups:
+    </para>
+
+    <screen>
+<![CDATA[
+ldm> show diskgroup 06495a84-fbfd-11e1-8cf9-52540061f5db
+{
+  "name" : "WIN-ERRDJSBDAVF-Dg0",
+  "guid" : "06495a84-fbfd-11e1-8cf9-52540061f5db",
+  "volumes" : [
+    "Volume4",
+    "Volume1",
+    "Volume2",
+    "Volume3",
+    "Volume5"
+  ],
+  "disks" : [
+    "Disk1",
+    "Disk2",
+    "Disk3",
+    "Disk4",
+    "Disk5",
+    "Disk6",
+    "Disk7",
+    "Disk8",
+    "Disk9"
+  ]
+}
+]]>
+    </screen>
+
+    <para>
+    Show detailed information about one of the volumes in the disk group:
+    </para>
+
+    <screen>
+<![CDATA[
+ldm> show volume 06495a84-fbfd-11e1-8cf9-52540061f5db Volume1
+{
+  "name" : "Volume1",
+  "type" : "spanned",
+  "size" : 129024,
+  "chunk-size" : 0,
+  "hint" : "E:",
+  "partitions" : [
+    "Disk1-01",
+    "Disk2-01"
+  ]
+}
+]]>
+    </screen>
+
+    <para>
+    Show detailed information about one of the partitions in the volume:
+    </para>
+
+    <screen>
+<![CDATA[
+ldm> show partition 06495a84-fbfd-11e1-8cf9-52540061f5db Disk1-01
+{
+  "name" : "Disk1-01",
+  "start" : 65,
+  "size" : 96256,
+  "disk" : "Disk1"
+}
+]]>
+    </screen>
+
+    <para>
+    Show detailed information about the disk containing the partition:
+    </para>
+
+    <screen>
+<![CDATA[
+ldm> show disk 06495a84-fbfd-11e1-8cf9-52540061f5db Disk1
+{
+  "name" : "Disk1",
+  "guid" : "06495a85-fbfd-11e1-8cf9-52540061f5db",
+  "present" : true,
+  "device" : "/dev/loop15",
+  "data-start" : 63,
+  "data-size" : 100289,
+  "metadata-start" : 100352,
+  "metadata-size" : 2048
+}
+]]>
+    </screen>
+
+    <para>
+    Create a device-mapper device for a volume:
+    </para>
+
+    <screen>
+<![CDATA[
+ldm> create volume 06495a84-fbfd-11e1-8cf9-52540061f5db Volume1
+[
+  "ldm_vol_WIN-ERRDJSBDAVF-Dg0_Volume1"
+]
+]]>
+    </screen>
+
+    <para>
+    A new device-mapper device has been created, called
+    <literal>ldm_vol_WIN-ERRDJSBDAVF-Dg0_Volume1</literal>. Depending on how
+    udev is configured, it will probably now be available as
+    <literal>/dev/mapper/ldm_vol_WIN-ERRDJSBDAVF-Dg0_Volume1</literal>.
+    </para>
+
+    <para>
+    Create device-mapper devices for all volumes in both disk groups:
+    </para>
+
+    <screen>
+<![CDATA[
+ldm> create all
+[
+  "ldm_vol_Red-nzv8x6obywgDg0_Volume2",
+  "ldm_vol_Red-nzv8x6obywgDg0_Volume1",
+  "ldm_vol_Red-nzv8x6obywgDg0_Volume4",
+  "ldm_vol_Red-nzv8x6obywgDg0_Stripe1",
+  "ldm_vol_Red-nzv8x6obywgDg0_Raid1",
+  "ldm_vol_Red-nzv8x6obywgDg0_Volume3",
+  "ldm_vol_WIN-ERRDJSBDAVF-Dg0_Volume4",
+  "ldm_vol_WIN-ERRDJSBDAVF-Dg0_Volume2",
+  "ldm_vol_WIN-ERRDJSBDAVF-Dg0_Volume3",
+  "ldm_vol_WIN-ERRDJSBDAVF-Dg0_Volume5"
+]
+]]>
+    </screen>
+
+    <para>
+    Note that <literal>ldm_vol_WIN-ERRDJSBDAVF-Dg0_Volume1</literal> is not in
+    the list of devices which were created as it already existed.
+    </para>
+
+    <para>
+    Remove the device-mapper device for a single volume:
+    </para>
+
+    <screen>
+<![CDATA[
+ldm> remove volume 06495a84-fbfd-11e1-8cf9-52540061f5db Volume2
+[
+  "ldm_vol_WIN-ERRDJSBDAVF-Dg0_Volume2"
+]
+]]>
+    </screen>
+
+    <screen>
+<![CDATA[
+ldm> remove all
+[
+  "ldm_vol_Red-nzv8x6obywgDg0_Volume2",
+  "ldm_vol_Red-nzv8x6obywgDg0_Volume1",
+  "ldm_vol_Red-nzv8x6obywgDg0_Volume4",
+  "ldm_vol_Red-nzv8x6obywgDg0_Stripe1",
+  "ldm_vol_Red-nzv8x6obywgDg0_Raid1",
+  "ldm_vol_Red-nzv8x6obywgDg0_Volume3",
+  "ldm_vol_WIN-ERRDJSBDAVF-Dg0_Volume4",
+  "ldm_vol_WIN-ERRDJSBDAVF-Dg0_Volume1",
+  "ldm_vol_WIN-ERRDJSBDAVF-Dg0_Volume3",
+  "ldm_vol_WIN-ERRDJSBDAVF-Dg0_Volume5"
+]
+]]>
+    </screen>
+
+    <para>
+    Note that <literal>ldm_vol_WIN-ERRDJSBDAVF-Dg0_Volume2</literal> is not in
+    the list of devices which were removed, as it was removed previously.
+    </para>
+</refsect1>
+
+</refentry>
