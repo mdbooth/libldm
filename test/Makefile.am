@@ -16,6 +16,8 @@
 
 AM_CFLAGS = -Wall -Werror
 
+EXTRA_DIST = checkmount.pl data/ldm-data.tar.xz
+
 check_PROGRAMS = partread ldmread
 
 partread_CFLAGS = $(AM_CFLAGS) -I$(top_srcdir)/src
@@ -121,6 +123,7 @@ img_files = \
     $(2008R2_RAID5)
 
 $(img_files): data/ldm-data.tar.xz Makefile
+	mkdir -p $(builddir)/data
 	tar -C $(builddir)/data -SJxf $< && touch $(img_files)
 
 data: $(img_files)
@@ -150,7 +153,9 @@ TESTS = \
 
 $(TESTS): Makefile.am checkmount.pl $(img_files)
 	echo "#!/bin/sh" > $@
-	echo "sudo ./checkmount.pl $(top_builddir)/src $($@_volume) $($@)" >> $@
+	echo "sudo $(srcdir)/checkmount.pl $(top_builddir)/src $($@_volume) $($@)" >> $@
 	chmod 755 $@
 
 .PHONY: data
+
+CLEANFILES = $(TESTS) $(img_files)

@@ -21,3 +21,4 @@ man_MANS = ldmtool.1
 
 BUILT_EXTRA_DIST = $(man_MANS)
 EXTRA_DIST = ldmtool.xml
+CLEANFILES = ldmtool.1
