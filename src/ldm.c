@@ -2924,6 +2924,10 @@ ldm_volume_dm_create(const LDMVolume * const o, GString **created,
 {
     const LDMVolumePrivate * const vol = o->priv;
 
+    /* We should really store the previous logging function and restore it
+     * afterwards, but the API doesn't allow this. */
+    dm_log_with_errno_init(_dm_log_fn);
+
     /* Check if the device already exists */
     struct dm_tree *tree = _get_device_tree(err);
     if (!tree) return FALSE;
@@ -2936,10 +2940,6 @@ ldm_volume_dm_create(const LDMVolume * const o, GString **created,
     }
     dm_tree_free(tree); tree = NULL;
     g_string_free(name, TRUE);
-
-    /* We should really store the previous logging function and restore it
-     * afterwards, but the API doesn't allow this. */
-    dm_log_with_errno_init(_dm_log_fn);
 
     switch (vol->type) {
     case LDM_VOLUME_TYPE_SIMPLE:
@@ -2975,6 +2975,10 @@ ldm_volume_dm_remove(const LDMVolume * const o, GString **removed,
                      GError ** const err)
 {
     const LDMVolumePrivate * const vol = o->priv;
+
+    /* We should really store the previous logging function and restore it
+     * afterwards, but the API doesn't allow this. */
+    dm_log_with_errno_init(_dm_log_fn);
 
     struct dm_tree *tree = _get_device_tree(err);
     if (!tree) return FALSE;
@@ -3012,6 +3016,8 @@ ldm_volume_dm_remove(const LDMVolume * const o, GString **removed,
 out:
     dm_tree_free(tree);
     if (removed && name) *removed = name;
+
+    dm_log_with_errno_init(NULL);
 
     return r;
 }
