@@ -18,6 +18,7 @@
 #define _GNU_SOURCE
 
 #include <endian.h>
+#include <errno.h>
 #include <fcntl.h>
 #include <libdevmapper.h>
 #include <linux/fs.h>
@@ -2541,8 +2542,13 @@ _dm_remove(const gchar * const name, uint32_t udev_cookie, GError ** const err)
     }
 
     if (!dm_task_run(task)) {
-        g_set_error_literal(err, LDM_ERROR, LDM_ERROR_EXTERNAL,
-                            _dm_err_last_msg);
+        if (_dm_err_last_errno == EBUSY) {
+            g_set_error(err, LDM_ERROR, LDM_ERROR_EXTERNAL,
+                        "Device is still mounted");
+        } else {
+            g_set_error_literal(err, LDM_ERROR, LDM_ERROR_EXTERNAL,
+                                _dm_err_last_msg);
+        }
         r = FALSE; goto out;
     }
 
@@ -2899,7 +2905,10 @@ _dm_log_fn(const int level, const char * const file, const int line,
     _dm_err_last_level = level;
     _dm_err_last_file = file;
     _dm_err_last_line = line;
-    _dm_err_last_errno = dm_errno;
+
+    /* device-mapper doesn't set dm_errno usefully (it only seems to use
+     * EUNCLASSIFIED), so we capture errno directly and cross our fingers */
+    _dm_err_last_errno = errno;
 
     if (_dm_err_last_msg) {
         free(_dm_err_last_msg);
