@@ -19,3 +19,6 @@ ACLOCAL_AMFLAGS = -I m4
 DISTCHECK_CONFIGURE_FLAGS=--enable-gtk-doc
 
 SUBDIRS = src test docs/reference/libldm docs/reference/ldmtool
+
+pkgconfigdir = $(libdir)/pkgconfig
+pkgconfig_DATA = ldm-1.0.pc
