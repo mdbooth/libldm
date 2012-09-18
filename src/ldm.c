@@ -2996,7 +2996,10 @@ ldm_volume_dm_remove(const LDMVolume * const o, GString **removed,
             goto out;
         }
 
-        if (!_dm_remove(name->str, cookie, err)) goto out;
+        if (!_dm_remove(name->str, cookie, err)) {
+            g_string_free(name, TRUE); name = NULL;
+            goto out;
+        }
 
         dm_tree_set_cookie(node, cookie);
         if (!dm_tree_deactivate_children(node, NULL, 0)) {
