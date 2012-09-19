@@ -2541,6 +2541,10 @@ _dm_remove(const gchar * const name, uint32_t udev_cookie, GError ** const err)
         r = FALSE; goto out;
     }
 
+    /* If a remove operation fails, try again in case it was only opened
+     * transiently. */
+    dm_task_retry_remove(task);
+
     if (!dm_task_run(task)) {
         if (_dm_err_last_errno == EBUSY) {
             g_set_error(err, LDM_ERROR, LDM_ERROR_EXTERNAL,
