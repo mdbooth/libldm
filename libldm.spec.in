@@ -39,23 +39,25 @@ make %{?_smp_mflags}
 
 
 %install
-rm -rf $RPM_BUILD_ROOT
 %make_install
 find $RPM_BUILD_ROOT -name '*.la' -exec rm -f {} ';'
 
 
+%post -p /sbin/ldconfig
+
+%postun -p /sbin/ldconfig
+
+
 %files
-%doc
+%doc %{_mandir}/man1/ldmtool.1.gz
 %{_libdir}/*.so.*
 %{_bindir}/ldmtool
-%{_mandir}/man1/ldmtool.1.gz
 
 %files devel
-%doc
+%doc %{_datadir}/gtk-doc
 %{_includedir}/*
 %{_libdir}/*.so
 %{_libdir}/pkgconfig/ldm-1.0.pc
-%{_datadir}/gtk-doc
 
 
 %changelog
