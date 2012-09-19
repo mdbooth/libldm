@@ -9,8 +9,8 @@
 /configure
 /gtk-doc.make
 /ldm-1.0.pc
-/libldm-0.1/
-/libldm-0.1.tar.gz
+/libldm-*/
+/libldm-*.tar.gz
 /libtool
 /m4
 /stamp-h1
