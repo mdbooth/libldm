@@ -20,6 +20,9 @@
 .deps/
 Makefile
 Makefile.in
+*.o
+*.la
+*.lo
 
 # Random exclusions
 .gdb_history
@@ -28,10 +31,6 @@ Makefile.in
 /src/ldmtool
 /test/partread
 /test/ldmread
-/test/ldmtables
-*.o
-*.la
-*.lo
 
 # Temporary files
 .*.swp
