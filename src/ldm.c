@@ -2917,7 +2917,9 @@ _dm_log_fn(const int level, const char * const file, const int line,
 
     va_list ap;
     va_start(ap, f);
-    vasprintf(&_dm_err_last_msg, f, ap);
+    if (vasprintf(&_dm_err_last_msg, f, ap) == -1) {
+        g_error("vasprintf");
+    }
     va_end(ap);
 }
 
