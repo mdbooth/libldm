@@ -30,15 +30,19 @@ AC_CONFIG_MACRO_DIR([m4])
 
 # Checks for programs.
 AC_PROG_CC_C99
-AC_PROG_CXX
 LT_INIT
 
+AC_CHECK_LIB([readline], [readline])
+AC_CHECK_LIB([uuid], [uuid_parse])
+AC_CHECK_LIB([z], [crc32])
+
 # Checks for libraries.
-AC_CHECK_FUNCS([bzero])
+AC_CHECK_FUNCS([bzero strerror])
 AC_FUNC_MALLOC
 
 # Checks for header files.
-AC_CHECK_HEADERS([fcntl.h unistd.h sys/ioctl.h])
+AC_CHECK_HEADERS([fcntl.h stdint.h stdlib.h string.h sys/ioctl.h unistd.h ])
+AC_HEADER_MAJOR
 
 # Checks for typedefs, structures, and compiler characteristics.
 AC_TYPE_OFF_T
