@@ -1,0 +1,61 @@
+Name:           libldm
+Version:        @VERSION@
+Release:        1%{?dist}%{?extra_release}
+Summary:        A tool to manage Windows dynamic disks
+
+License:        GPLv2+ and LGPLv2+
+URL:            https://github.com/mdbooth/libldm 
+Source0:        libldm-@VERSION@.tar.gz
+
+BuildRequires:  glib2-devel >= 2.26.0
+BuildRequires:  json-glib-devel >= 0.14.0
+BuildRequires:  device-mapper-devel >= 1.0
+BuildRequires:  zlib-devel libuuid-devel readline-devel
+
+
+%description
+libldm is a library for managing Microsoft Windows dynamic disks, which use
+Microsoft's LDM metadata. It can inspect them, and also create and remove
+device-mapper block devices which can be mounted. It includes ldmtool, which
+exposes this functionality as a command-line tool.
+
+
+%package        devel
+Summary:        Development files for %{name}
+Requires:       %{name}%{?_isa} = %{version}-%{release}
+
+%description    devel
+The %{name}-devel package contains libraries and header files for
+developing applications that use %{name}.
+
+
+%prep
+%setup -q
+
+
+%build
+%configure --disable-static --enable-gtk-doc
+make %{?_smp_mflags}
+
+
+%install
+rm -rf $RPM_BUILD_ROOT
+%make_install
+find $RPM_BUILD_ROOT -name '*.la' -exec rm -f {} ';'
+
+
+%files
+%doc
+%{_libdir}/*.so.*
+%{_bindir}/ldmtool
+%{_mandir}/man1/ldmtool.1.gz
+
+%files devel
+%doc
+%{_includedir}/*
+%{_libdir}/*.so
+%{_libdir}/pkgconfig/ldm-1.0.pc
+%{_datadir}/gtk-doc
+
+
+%changelog
