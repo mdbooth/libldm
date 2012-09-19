@@ -33,8 +33,6 @@ AC_PROG_CC_C99
 LT_INIT
 
 AC_CHECK_LIB([readline], [readline])
-AC_CHECK_LIB([uuid], [uuid_parse])
-AC_CHECK_LIB([z], [crc32])
 
 # Checks for libraries.
 AC_CHECK_FUNCS([bzero strerror])
@@ -80,6 +78,20 @@ PKG_CHECK_MODULES([GIO_UNIX], [gio-unix-2.0 >= 2.32.0],
     [
         AC_SUBST([GIO_UNIX_CFLAGS])
         AC_SUBST([GIO_UNIX_LIBS])
+    ]
+)
+
+PKG_CHECK_MODULES([ZLIB], [zlib >= 1.2.5],
+    [
+        AC_SUBST([ZLIB_CFLAGS])
+        AC_SUBST([ZLIB_LIBS])
+    ]
+)
+
+PKG_CHECK_MODULES([UUID], [uuid >= 2.21.0],
+    [
+        AC_SUBST([UUID_CFLAGS])
+        AC_SUBST([UUID_LIBS])
     ]
 )
 

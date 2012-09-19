@@ -22,8 +22,8 @@ lib_LTLIBRARIES = $(libname)
 include_HEADERS = ldm.h
 
 libldm_1_0_la_SOURCES = mbr.h mbr.c gpt.h gpt.c ldm.h ldm.c
-libldm_1_0_la_CFLAGS = $(AM_CFLAGS) $(GOBJECT_CFLAGS) $(DEVMAPPER_CFLAGS)
-libldm_1_0_la_LIBADD = -lz -luuid $(GOBJECT_LIBS) $(DEVMAPPER_LIBS)
+libldm_1_0_la_CFLAGS = $(AM_CFLAGS) $(GOBJECT_CFLAGS) $(ZLIB_CFLAGS) $(UUID_CFLAGS) $(DEVMAPPER_CFLAGS)
+libldm_1_0_la_LIBADD = $(ZLIB_LIBS) $(UUID_LIBS) $(GOBJECT_LIBS) $(DEVMAPPER_LIBS)
 
 bin_PROGRAMS = ldmtool
 
