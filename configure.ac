@@ -32,7 +32,8 @@ AC_CONFIG_MACRO_DIR([m4])
 AC_PROG_CC_C99
 LT_INIT
 
-AC_CHECK_LIB([readline], [readline])
+AC_CHECK_LIB([readline], [readline], [],
+             [AC_MSG_ERROR([readline library is missing])])
 
 # Checks for libraries.
 AC_CHECK_FUNCS([bzero strerror])
