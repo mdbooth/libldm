@@ -41,7 +41,16 @@ AC_CHECK_FUNCS([bzero strerror])
 AC_FUNC_MALLOC
 
 # Checks for header files.
-AC_CHECK_HEADERS([fcntl.h stdint.h stdlib.h string.h sys/ioctl.h unistd.h ])
+AC_CHECK_HEADERS(
+    [ fcntl.h \
+      stdint.h \
+      stdlib.h \
+      string.h \
+      sys/ioctl.h \
+      unistd.h ],
+    [],
+    [AC_MSG_ERROR([At least 1 required header file is missing])]
+)
 AC_HEADER_MAJOR
 
 # Checks for typedefs, structures, and compiler characteristics.
