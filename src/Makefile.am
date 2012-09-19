@@ -19,9 +19,9 @@ AM_CFLAGS = -Wall -Werror
 libname = libldm-1.0.la
 lib_LTLIBRARIES = $(libname)
 
-libldm_1_0_ladir = $(includedir)/libldm
-libldm_1_0_la_HEADERS = ldm.h
-libldm_1_0_la_SOURCES = mbr.c mbr.h gpt.c gpt.h ldm.c
+include_HEADERS = ldm.h
+
+libldm_1_0_la_SOURCES = mbr.h mbr.c gpt.h gpt.c ldm.h ldm.c
 libldm_1_0_la_CFLAGS = $(AM_CFLAGS) $(GOBJECT_CFLAGS) $(DEVMAPPER_CFLAGS)
 libldm_1_0_la_LIBADD = -lz -luuid $(GOBJECT_LIBS) $(DEVMAPPER_LIBS)
 
