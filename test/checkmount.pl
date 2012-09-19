@@ -32,10 +32,22 @@ my $builddir = shift @ARGV;
 my $dg = shift @ARGV;
 my $vol = shift @ARGV;
 
+sub umount
+{
+    my $dir = shift;
+
+    my $tries = 0;
+    do {
+        return if (system('umount', $mount) == 0);
+        sleep(1);
+        $tries++;
+    } while ($tries < 3)
+}
+
 END {
     my $err = $?;
 
-    system('umount', $mount) if (defined($mount) && $mounted);
+    umount($mount) if (defined($mount) && $mounted);
 
     while(@dm_devices) {
         system('dmsetup', 'remove', pop(@dm_devices));
@@ -72,7 +84,7 @@ foreach my $device (@{$json->incr_parse}) {
     open(TEST, '<', "$mount/test.txt") or die "Test file missing";
     my $line = <TEST>;
     close(TEST);
-    system('umount', $mount);
+    umount($mount);
     $mounted = 0;
 
     `$builddir/ldmtool remove all`;
