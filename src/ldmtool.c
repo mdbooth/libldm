@@ -631,7 +631,11 @@ shell(LDM * const ldm, gchar ** const devices,
                 break;
             }
 
-            printf("Unrecognised command: %s\n", argv[0]);
+            if (g_strcmp0("help", argv[0]) == 0) {
+                printf("Usage:\n%s\n", USAGE_ALL);
+            } else {
+                printf("Unrecognised command: %s\n", argv[0]);
+            }
         }
         if (result) json_builder_reset(jb);
 
