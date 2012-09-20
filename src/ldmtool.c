@@ -135,7 +135,7 @@ _scan(LDM *const ldm, gboolean ignore_errors,
         gchar * const pattern = argv[i];
 
         wordexp(pattern, &p, WRDE_REUSE);
-        for (int j = 0; j < p.we_wordc; j++) {
+        for (size_t j = 0; j < p.we_wordc; j++) {
             gchar * const path = p.we_wordv[j];
 
             GError *err = NULL;
@@ -156,7 +156,7 @@ _scan(LDM *const ldm, gboolean ignore_errors,
         json_builder_begin_array(jb);
 
         GArray * const dgs = ldm_get_disk_groups(ldm);
-        for (int i = 0; i < dgs->len; i++) {
+        for (guint i = 0; i < dgs->len; i++) {
             LDMDiskGroup * const dg = g_array_index(dgs, LDMDiskGroup *, i);
 
             gchar *guid = ldm_disk_group_get_guid(dg);
@@ -184,7 +184,7 @@ show_json_array(JsonBuilder * const jb, const GArray * const array,
 {
     json_builder_set_member_name(jb, name);
     json_builder_begin_array(jb);
-    for (int i = 0; i < array->len; i++) {
+    for (guint i = 0; i < array->len; i++) {
         GObject * const o = g_array_index(array, GObject *, i);
 
         gchar *value;
@@ -201,7 +201,7 @@ find_diskgroup(LDM * const ldm, const gchar * const guid)
     LDMDiskGroup *dg = NULL;
 
     GArray * const diskgroups = ldm_get_disk_groups(ldm);
-    for (int i = 0; i < diskgroups->len; i++) {
+    for (guint i = 0; i < diskgroups->len; i++) {
         LDMDiskGroup * const dg_i =
             g_array_index(diskgroups, LDMDiskGroup *, i);
 
@@ -273,7 +273,7 @@ show_volume(LDM *const ldm, const gint argc, gchar ** const argv,
     GArray * const volumes = ldm_disk_group_get_volumes(dg);
     g_object_unref(dg);
     gboolean found = FALSE;
-    for (int i = 0; i < volumes->len; i++) {
+    for (guint i = 0; i < volumes->len; i++) {
         LDMVolume * const vol = g_array_index(volumes, LDMVolume *, i);
 
         gchar *name = ldm_volume_get_name(vol);
@@ -304,7 +304,7 @@ show_volume(LDM *const ldm, const gint argc, gchar ** const argv,
             json_builder_set_member_name(jb, "partitions");
             json_builder_begin_array(jb);
             GArray * const partitions = ldm_volume_get_partitions(vol);
-            for (int j = 0; j < partitions->len; j++) {
+            for (guint j = 0; j < partitions->len; j++) {
                 LDMPartition * const part =
                     g_array_index(partitions, LDMPartition *, j);
 
@@ -339,7 +339,7 @@ show_partition(LDM *const ldm, const gint argc, gchar ** const argv,
 
     GArray * const parts = ldm_disk_group_get_partitions(dg);
     g_object_unref(dg);
-    for (int i = 0; i < parts->len; i++) {
+    for (guint i = 0; i < parts->len; i++) {
         LDMPartition * const part = g_array_index(parts, LDMPartition *, i);
 
         gchar *name = ldm_partition_get_name(part);
@@ -391,7 +391,7 @@ show_disk(LDM *const ldm, const gint argc, gchar ** const argv,
     GArray * const disks = ldm_disk_group_get_disks(dg);
     g_object_unref(dg);
     gboolean found = FALSE;
-    for (int i = 0; i < disks->len; i++) {
+    for (guint i = 0; i < disks->len; i++) {
         LDMDisk * const disk = g_array_index(disks, LDMDisk *, i);
 
         gchar *name = ldm_disk_get_name(disk);
@@ -474,11 +474,11 @@ _ldm_vol_action(LDM *const ldm, const gint argc, gchar ** const argv,
         if (g_strcmp0(argv[0], "all") != 0) return (*usage)();
 
         GArray *dgs = ldm_get_disk_groups(ldm);
-        for (int i = 0; i < dgs->len; i++) {
+        for (guint i = 0; i < dgs->len; i++) {
             LDMDiskGroup * const dg = g_array_index(dgs, LDMDiskGroup *, i);
 
             GArray *volumes = ldm_disk_group_get_volumes(dg);
-            for (int j = 0; j < volumes->len; j++) {
+            for (guint j = 0; j < volumes->len; j++) {
                 LDMVolume * const vol = g_array_index(volumes, LDMVolume *, j);
 
                 GError *err = NULL;
@@ -513,7 +513,7 @@ _ldm_vol_action(LDM *const ldm, const gint argc, gchar ** const argv,
 
         GArray * const volumes = ldm_disk_group_get_volumes(dg);
         LDMVolume *vol = NULL;
-        for (int i = 0; i < volumes->len; i++) {
+        for (guint i = 0; i < volumes->len; i++) {
             LDMVolume * const o = g_array_index(volumes, LDMVolume *, i);
 
             gchar *name = ldm_volume_get_name(o);

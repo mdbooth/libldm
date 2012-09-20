@@ -1339,7 +1339,7 @@ _read_privhead_gpt(const int fd, const gchar * const path, const guint secsize,
                                          0x85,0xD2,
                                          0xE1,0xE9,0x04,0x34,0xCF,0xB3 };
 
-    for (int i = 0; i < gpt.pte_array_len; i++) {
+    for (uint32_t i = 0; i < gpt.pte_array_len; i++) {
         gpt_pte_t pte;
         r = gpt_get_pte(h, 0, &pte);
         if (r < 0) {
@@ -1907,7 +1907,7 @@ _parse_vblks(const void * const config, const gchar * const path,
         if (be16toh(head->entries_total) > 1) {
             /* Look for an existing record */
             gboolean found = FALSE;
-            for (int i = 0; i < spanned->len; i++) {
+            for (guint i = 0; i < spanned->len; i++) {
                 struct _spanned_rec * const r =
                     g_array_index(spanned, struct _spanned_rec *, i);
 
@@ -1941,7 +1941,7 @@ _parse_vblks(const void * const config, const gchar * const path,
         vblk += vblk_data_size;
     }
 
-    for (int i = 0; i < spanned->len; i++) {
+    for (guint i = 0; i < spanned->len; i++) {
         struct _spanned_rec * const rec =
             g_array_index(spanned, struct _spanned_rec *, i);
 
@@ -1984,13 +1984,13 @@ _parse_vblks(const void * const config, const gchar * const path,
         goto error;
     }
 
-    for (int i = 0; i < n_parts; i++) {
+    for (guint32 i = 0; i < n_parts; i++) {
         LDMPartition * const part_o =
                 g_array_index(dg->parts, LDMPartition *, i);
         LDMPartitionPrivate * const part = part_o->priv;
 
         /* Look for the underlying disk for this partition */
-        for (int j = 0; j < n_disks; j++) {
+        for (guint32 j = 0; j < n_disks; j++) {
             LDMDisk * const disk_o =
                 g_array_index(dg->disks, LDMDisk *, j);
             LDMDiskPrivate * const disk = disk_o->priv;
@@ -2010,7 +2010,7 @@ _parse_vblks(const void * const config, const gchar * const path,
 
         /* Look for the parent component */
         gboolean parent_found = FALSE;
-        for (int j = 0; j < comps->len; j++) {
+        for (guint j = 0; j < comps->len; j++) {
             struct _LDMComponent * const comp =
                 (struct _LDMComponent *)comps->data + j;
 
@@ -2029,7 +2029,7 @@ _parse_vblks(const void * const config, const gchar * const path,
         }
     }
 
-    for (int i = 0; i < n_comps; i++) {
+    for (guint32 i = 0; i < n_comps; i++) {
         struct _LDMComponent * const comp =
             (struct _LDMComponent *)comps->data + i;
 
@@ -2052,7 +2052,7 @@ _parse_vblks(const void * const config, const gchar * const path,
         g_array_sort(comp->parts, _cmp_component_parts);
 
         gboolean parent_found = FALSE;
-        for (int j = 0; j < n_vols; j++) {
+        for (guint32 j = 0; j < n_vols; j++) {
             LDMVolume * const vol_o = g_array_index(dg->vols, LDMVolume *, j);
             LDMVolumePrivate * const vol = vol_o->priv;
 
@@ -2140,7 +2140,7 @@ _parse_vblks(const void * const config, const gchar * const path,
         }
     }
 
-    for (int i = 0; i < n_vols; i++) {
+    for (guint32 i = 0; i < n_vols; i++) {
         LDMVolume * const vol_o = g_array_index(dg->vols, LDMVolume *, i);
         LDMVolumePrivate * const vol = vol_o->priv;
 
@@ -2154,7 +2154,7 @@ _parse_vblks(const void * const config, const gchar * const path,
         vol->dgname = g_strdup(dg->name);
     }
 
-    for (int i = 0; i < n_disks; i++) {
+    for (guint32 i = 0; i < n_disks; i++) {
         LDMDisk * const disk_o = g_array_index(dg->disks, LDMDisk *, i);
         LDMDiskPrivate * const disk = disk_o->priv;
 
@@ -2230,7 +2230,7 @@ ldm_add_fd(LDM * const o, const int fd, const guint secsize,
 
     LDMDiskGroup *dg_o = NULL;
     LDMDiskGroupPrivate *dg = NULL;
-    for (int i = 0; i < disk_groups->len; i++) {
+    for (guint i = 0; i < disk_groups->len; i++) {
         LDMDiskGroup *c = g_array_index(disk_groups,
                                             LDMDiskGroup *, i);
 
@@ -2271,7 +2271,7 @@ ldm_add_fd(LDM * const o, const int fd, const guint secsize,
 
     /* Find the disk VBLK for the current disk and add additional information
      * from PRIVHEAD */
-    for (int i = 0; i < dg->disks->len; i++) {
+    for (guint i = 0; i < dg->disks->len; i++) {
         LDMDisk * const disk_o = g_array_index(dg->disks, LDMDisk *, i);
         LDMDiskPrivate * const disk = disk_o->priv;
 
@@ -2481,7 +2481,7 @@ _dm_create(const gchar * const name, uint32_t udev_cookie,
         r = FALSE; goto out;
     }
 
-    for (int i = 0; i < n_targets; i++) {
+    for (guint i = 0; i < n_targets; i++) {
         const struct dm_target * const target = &targets[i];
 
         if (!dm_task_add_target(task, target->start, target->size,
@@ -2610,7 +2610,7 @@ static GString *
 _dm_create_spanned(const LDMVolumePrivate * const vol, GError ** const err)
 {
     static GString *name = NULL;
-    int i = 0;
+    guint i = 0;
     struct dm_target *targets = g_malloc(sizeof(*targets) * vol->parts->len);
 
     uint64_t pos = 0;
@@ -2685,7 +2685,7 @@ _dm_create_striped(const LDMVolumePrivate * const vol, GError ** const err)
     target.params = g_string_new("");
     g_string_printf(target.params, "%u %lu", vol->parts->len, vol->chunk_size);
 
-    for (int i = 0; i < vol->parts->len; i++) {
+    for (guint i = 0; i < vol->parts->len; i++) {
         const LDMPartition * const part_o =
             g_array_index(vol->parts, const LDMPartition *, i);
         const LDMPartitionPrivate * const part = part_o->priv;
@@ -2748,7 +2748,7 @@ _dm_create_mirrored(const LDMVolumePrivate * const vol, GError ** const err)
     }
 
     int found = 0;
-    for (int i = 0; i < vol->parts->len; i++) {
+    for (guint i = 0; i < vol->parts->len; i++) {
         const LDMPartition * const part_o =
             g_array_index(vol->parts, const LDMPartition *, i);
         const LDMPartitionPrivate * const part = part_o->priv;
@@ -2836,7 +2836,7 @@ _dm_create_raid5(const LDMVolumePrivate * const vol, GError ** const err)
     }
 
     int found = 0;
-    for (int i = 0; i < vol->parts->len; i++) {
+    for (guint i = 0; i < vol->parts->len; i++) {
         const LDMPartition * const part_o =
             g_array_index(vol->parts, const LDMPartition *, i);
         const LDMPartitionPrivate * const part = part_o->priv;

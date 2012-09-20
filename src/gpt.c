@@ -82,7 +82,7 @@ gpt_open_secsize(int fd, const size_t secsize, gpt_handle_t **h)
     const off_t gpt_start = secsize;
 
     struct _gpt_head head;
-    int read = 0;
+    size_t read = 0;
     while (read < sizeof(head)) {
         ssize_t in = pread(fd, &head + read, sizeof(head) - read,
                            read + gpt_start);
