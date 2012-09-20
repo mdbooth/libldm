@@ -23,4 +23,4 @@ SUBDIRS = src test docs/reference/libldm docs/reference/ldmtool
 pkgconfigdir = $(libdir)/pkgconfig
 pkgconfig_DATA = ldm-1.0.pc
 
-EXTRA_DIST = libldm.spec
+EXTRA_DIST = libldm.spec COPYING.lgpl COPYING.gpl
