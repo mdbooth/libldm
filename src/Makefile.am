@@ -14,7 +14,9 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-AM_CFLAGS = -Wall -Werror
+AM_CFLAGS = -Wall -Werror -Wshadow -Wextra \
+  -Wno-unused-local-typedefs \
+  -Wno-unused-parameter
 
 libname = libldm-1.0.la
 lib_LTLIBRARIES = $(libname)
