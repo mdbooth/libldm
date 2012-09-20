@@ -134,19 +134,21 @@ _scan(LDM *const ldm, gboolean ignore_errors,
     for (int i = 0; i < argc; i++) {
         gchar * const pattern = argv[i];
 
-        wordexp(pattern, &p, WRDE_REUSE);
-        for (size_t j = 0; j < p.we_wordc; j++) {
-            gchar * const path = p.we_wordv[j];
+        if (wordexp(pattern, &p, WRDE_REUSE) != 0) {
+            /* FIXME: diagnose this? */
+        } else {
+            for (size_t j = 0; j < p.we_wordc; j++) {
+                gchar * const path = p.we_wordv[j];
 
-            GError *err = NULL;
-            if (!ldm_add(ldm, path, &err)) {
-                if (
-                    !ignore_errors &&
-                    (err->domain != LDM_ERROR || err->code != LDM_ERROR_NOT_LDM)
-                ) {
-                    g_warning("Error scanning %s: %s", path, err->message);
+                GError *err = NULL;
+                if (!ldm_add(ldm, path, &err)) {
+                    if (!ignore_errors &&
+                        (err->domain != LDM_ERROR
+                         || err->code != LDM_ERROR_NOT_LDM)) {
+                        g_warning("Error scanning %s: %s", path, err->message);
+                    }
+                    g_error_free(err); err = NULL;
                 }
-                g_error_free(err); err = NULL;
             }
         }
     }
