@@ -130,7 +130,7 @@ _scan(LDM *const ldm, gboolean ignore_errors,
       const gint argc, gchar ** const argv,
       JsonBuilder * const jb)
 {
-    wordexp_t p = {};
+    wordexp_t p = {0,};
     for (int i = 0; i < argc; i++) {
         gchar * const pattern = argv[i];
 
