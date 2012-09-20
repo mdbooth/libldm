@@ -2835,7 +2835,7 @@ _dm_create_raid5(const LDMVolumePrivate * const vol, GError ** const err)
         goto out;
     }
 
-    int found = 0;
+    guint n_found = 0;
     for (guint i = 0; i < vol->parts->len; i++) {
         const LDMPartition * const part_o =
             g_array_index(vol->parts, const LDMPartition *, i);
@@ -2853,12 +2853,12 @@ _dm_create_raid5(const LDMVolumePrivate * const vol, GError ** const err)
             }
         }
 
-        found++;
+        n_found++;
         g_array_append_val(devices, chunk);
         g_string_append_printf(target.params, " - /dev/mapper/%s", chunk->str);
     }
 
-    if (found < vol->parts->len - 1) {
+    if (n_found < vol->parts->len - 1) {
         g_set_error(err, LDM_ERROR, LDM_ERROR_MISSING_DISK,
                     "RAID5 volume is missing more than 1 component");
         goto out;
