@@ -20,6 +20,7 @@
 #include <endian.h>
 #include <errno.h>
 #include <fcntl.h>
+#include <inttypes.h>
 #include <libdevmapper.h>
 #include <linux/fs.h>
 #include <stdint.h>
@@ -1070,24 +1071,24 @@ _find_vmdb(const void * const config, const gchar * const path,
     const struct _tocblock *tocblock = config + secsize * 2;
     if (memcmp(tocblock->magic, "TOCBLOCK", 8) != 0) {
         g_set_error(err, LDM_ERROR, LDM_ERROR_INVALID,
-                    "Didn't find TOCBLOCK at config offset %lX",
+                    "Didn't find TOCBLOCK at config offset %" PRIX64,
                     UINT64_C(0x400));
         return FALSE;
     }
 
     g_debug("TOCBLOCK: %s\n"
-            "  Sequence1: %lu\n"
-            "  Sequence2: %lu\n"
+            "  Sequence1: %" PRIu64 "\n"
+            "  Sequence2: %" PRIu64 "\n"
             "  Bitmap: %s\n"
-            "    Flags1: %04ho\n"
-            "    Start: %lu\n"
-            "    Size: %lu\n"
-            "    Flags2: %016lo\n"
+            "    Flags1: %04" PRIo8 "\n"
+            "    Start: %" PRIu64 "\n"
+            "    Size: %" PRIu64 "\n"
+            "    Flags2: %016" PRIo64 "\n"
             "  Bitmap: %s\n"
-            "    Flags1: %04ho\n"
-            "    Start: %lu\n"
-            "    Size: %lu\n"
-            "    Flags2: %016lo",
+            "    Flags1: %04" PRIo8 "\n"
+            "    Start: %" PRIu64 "\n"
+            "    Size: %" PRIu64 "\n"
+            "    Flags2: %016" PRIo64,
             path,
             be64toh(tocblock->seq1),
             be64toh(tocblock->seq2),
@@ -1121,27 +1122,27 @@ _find_vmdb(const void * const config, const gchar * const path,
     if (memcmp((*vmdb)->magic, "VMDB", 4) != 0) {
         g_set_error(err, LDM_ERROR, LDM_ERROR_INVALID,
                     "Didn't find VMDB at config offset %lX",
-                    (void *) (*vmdb) - config);
+                    (unsigned long int)((void *) (*vmdb) - config));
         return FALSE;
     }
 
     g_debug("VMDB: %s\n"
-            "  VBLK last: %u\n"
-            "  VBLK size: %u\n"
-            "  VBLK first offset: %u\n"
-            "  Version major: %hu\n"
-            "  Version minor: %hu\n"
+            "  VBLK last: %" PRIu32 "\n"
+            "  VBLK size: %" PRIu32 "\n"
+            "  VBLK first offset: %" PRIu32 "\n"
+            "  Version major: %" PRIu16 "\n"
+            "  Version minor: %" PRIu16 "\n"
             "  Disk group GUID: %s\n"
-            "  Committed sequence: %lu\n"
-            "  Pending sequence: %lu\n"
-            "  Committed volumes: %u\n"
-            "  Committed components: %u\n"
-            "  Committed partitions: %u\n"
-            "  Committed disks: %u\n"
-            "  Pending volumes: %u\n"
-            "  Pending components: %u\n"
-            "  Pending partitions: %u\n"
-            "  Pending disks: %u",
+            "  Committed sequence: %" PRIu64 "\n"
+            "  Pending sequence: %" PRIu64 "\n"
+            "  Committed volumes: %" PRIu32 "\n"
+            "  Committed components: %" PRIu32 "\n"
+            "  Committed partitions: %" PRIu32 "\n"
+            "  Committed disks: %" PRIu32 "\n"
+            "  Pending volumes: %" PRIu32 "\n"
+            "  Pending components: %" PRIu32 "\n"
+            "  Pending partitions: %" PRIu32 "\n"
+            "  Pending disks: %" PRIu32,
             path,
             be32toh((*vmdb)->vblk_last),
             be32toh((*vmdb)->vblk_size),
@@ -1192,13 +1193,13 @@ _read_config(const int fd, const gchar * const path,
 
     if (config_start > size) {
         g_set_error(err, LDM_ERROR, LDM_ERROR_INVALID,
-                    "LDM config start (%lX) is outside file in %s",
+                    "LDM config start (%" PRIX64") is outside file in %s",
                     config_start, path);
         return FALSE;
     }
     if (config_start + config_size > size) {
         g_set_error(err, LDM_ERROR, LDM_ERROR_INVALID,
-                    "LDM config end (%lX) is outside file in %s",
+                    "LDM config end (%" PRIX64 ") is outside file in %s",
                     config_start + config_size, path);
         return FALSE;
     }
@@ -1257,19 +1258,19 @@ _read_privhead_off(const int fd, const gchar * const path,
 
     if (memcmp(privhead->magic, "PRIVHEAD", 8) != 0) {
         g_set_error(err, LDM_ERROR, LDM_ERROR_INVALID,
-                    "PRIVHEAD not found at offset %lX", ph_start);
+                    "PRIVHEAD not found at offset %" PRIX64, ph_start);
         return FALSE;
     }
 
     g_debug("PRIVHEAD: %s\n"
-            "  Version Major: %hu\n"
-            "  Version Minor: %hu\n"
+            "  Version Major: %" PRIu16 "\n"
+            "  Version Minor: %" PRIu16 "\n"
             "  Disk GUID: %s\n"
             "  Disk Group GUID: %s\n"
-            "  Logical Disk Start: %lu\n"
-            "  Logical Disk Size: %lu\n"
-            "  LDM Config Start: %lu\n"
-            "  LDM Config Size: %lu",
+            "  Logical Disk Start: %" PRIu64 "\n"
+            "  Logical Disk Size: %" PRIu64 "\n"
+            "  LDM Config Start: %" PRIu64 "\n"
+            "  LDM Config Size: %" PRIu64,
             path,
             be16toh(privhead->version_major),
             be16toh(privhead->version_minor),
@@ -1520,15 +1521,15 @@ _parse_vblk_vol(const guint8 revision, const guint16 flags,
     if (flags & 0x02) vol->hint = _parse_var_string(&vblk);
 
     g_debug("Volume: %s\n"
-            "  ID: %u\n"
-            "  Type: %i\n"
-            "  Flags: %hhu\n"
-            "  Children: %u\n"
-            "  Size: %lu\n"
-            "  Partition Type: %hhu\n"
+            "  ID: %" PRIu32 "\n"
+            "  Type: %" PRIi32 "\n"
+            "  Flags: %" PRIu8 "\n"
+            "  Children: %" PRIu32 "\n"
+            "  Size: %" PRIu64 "\n"
+            "  Partition Type: %" PRIu8 "\n"
             "  ID1: %s\n"
             "  ID2: %s\n"
-            "  Size2: %lu\n"
+            "  Size2: %" PRIu64 "\n"
             "  Hint: %s",
             vol->name,
             vol->id,
@@ -1613,12 +1614,12 @@ _parse_vblk_comp(const guint8 revision, const guint16 flags,
     }
 
     g_debug("Component:\n"
-            "  ID: %u\n"
-            "  Parent ID: %u\n"
-            "  Type: %u\n"
-            "  Parts: %u\n"
-            "  Chunk Size: %lu\n"
-            "  Columns: %u",
+            "  ID: %" PRIu32 "\n"
+            "  Parent ID: %" PRIu32 "\n"
+            "  Type: %" PRIu32 "\n"
+            "  Parts: %" PRIu32 "\n"
+            "  Chunk Size: %" PRIu64 "\n"
+            "  Columns: %" PRIu32,
             comp->id,
             comp->parent_id,
             comp->type,
@@ -1668,13 +1669,13 @@ _parse_vblk_part(const guint8 revision, const guint16 flags,
     }
 
     g_debug("Partition: %s\n"
-            "  ID: %u\n"
-            "  Parent ID: %u\n"
-            "  Disk ID: %u\n"
-            "  Index: %u\n"
-            "  Start: %lu\n"
-            "  Vol Offset: %lu\n"
-            "  Size: %lu",
+            "  ID: %" PRIu32 "\n"
+            "  Parent ID: %" PRIu32 "\n"
+            "  Disk ID: %" PRIu32 "\n"
+            "  Index: %" PRIu32 "\n"
+            "  Start: %" PRIu64 "\n"
+            "  Vol Offset: %" PRIu64 "\n"
+            "  Size: %" PRIu64,
             part->name,
             part->id,
             part->parent_id,
@@ -2260,9 +2261,9 @@ ldm_add_fd(LDM * const o, const int fd, const guint secsize,
         uint64_t committed = be64toh(vmdb->committed_seq);
         if (committed != dg->sequence) {
             g_set_error(err, LDM_ERROR, LDM_ERROR_INCONSISTENT,
-                        "Members of disk group " UUID_FMT " are inconsistent. "
-                        "Disk %s has committed sequence %lu; "
-                        "group has committed sequence %lu.",
+                        "Members of disk group " UUID_FMT " are inconsistent: "
+                        "disk %s has committed sequence %" PRIu64 ", "
+                        "group has committed sequence %" PRIu64,
                         UUID_VALS(disk_group_guid),
                         path, committed, dg->sequence);
             goto error;
@@ -2489,7 +2490,8 @@ _dm_create(const gchar * const name, uint32_t udev_cookie,
         {
             g_set_error(err, LDM_ERROR, LDM_ERROR_EXTERNAL,
                         "DM_DEVICE_CREATE: "
-                        "dm_task_add_target(%s, %lu, %lu, %s, %s) failed: %s",
+                        "dm_task_add_target(%s, %" PRIu64 ", %" PRIu64 ", "
+                                           "%s, %s) failed: %s",
                         name, target->start, target->size,
                         target->type, target->params->str, _dm_err_last_msg);
             r = FALSE; goto out;
@@ -2579,7 +2581,7 @@ _dm_create_part(const LDMPartitionPrivate * const part, uint32_t cookie,
     target.size = part->size;
     target.type = "linear";
     target.params = g_string_new("");
-    g_string_printf(target.params, "%s %lu",
+    g_string_printf(target.params, "%s %" PRIu64,
                     disk->device, disk->data_start + part->start);
 
     /* Ensure we sanitise table names */
@@ -2641,7 +2643,7 @@ _dm_create_spanned(const LDMVolumePrivate * const vol, GError ** const err)
         target->size = part->size;
         target->type = "linear";
         target->params = g_string_new("");
-        g_string_append_printf(target->params, "%s %lu",
+        g_string_append_printf(target->params, "%s %" PRIu64,
                                                disk->device,
                                                disk->data_start + part->start);
         pos += part->size;
@@ -2683,7 +2685,8 @@ _dm_create_striped(const LDMVolumePrivate * const vol, GError ** const err)
     target.size = vol->size;
     target.type = "striped";
     target.params = g_string_new("");
-    g_string_printf(target.params, "%u %lu", vol->parts->len, vol->chunk_size);
+    g_string_printf(target.params, "%" PRIu32 " %" PRIu64,
+                    vol->parts->len, vol->chunk_size);
 
     for (guint i = 0; i < vol->parts->len; i++) {
         const LDMPartition * const part_o =
@@ -2698,7 +2701,7 @@ _dm_create_striped(const LDMVolumePrivate * const vol, GError ** const err)
             goto out;
         }
 
-        g_string_append_printf(target.params, " %s %lu",
+        g_string_append_printf(target.params, " %s %" PRIu64,
                                                disk->device,
                                                disk->data_start + part->start);
     }
@@ -2822,7 +2825,7 @@ _dm_create_raid5(const LDMVolumePrivate * const vol, GError ** const err)
     target.size = vol->size;
     target.type = "raid";
     target.params = g_string_new("");
-    g_string_append_printf(target.params, "raid5_ls 1 %lu %u",
+    g_string_append_printf(target.params, "raid5_ls 1 %" PRIu64 " %" PRIu32,
                            vol->chunk_size, vol->parts->len);
 
     GArray * devices = g_array_new(FALSE, FALSE, sizeof(GString *));
