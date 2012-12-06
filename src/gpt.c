@@ -15,6 +15,8 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+#include <config.h>
+
 #include <endian.h>
 #include <iconv.h>
 #include <linux/fs.h>

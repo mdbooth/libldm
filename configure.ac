@@ -21,6 +21,9 @@ AC_CONFIG_SRCDIR([src/ldm.c])
 AC_CONFIG_HEADERS([config.h])
 AM_INIT_AUTOMAKE([foreign])
 
+# Define _GNU_SOURCE etc.
+AC_USE_SYSTEM_EXTENSIONS
+
 AC_PATH_PROG([XSLTPROC], [xsltproc])
 
 m4_ifndef([AM_SILENT_RULES], [m4_define([AM_SILENT_RULES],[])])
