@@ -239,9 +239,12 @@ ldm_error_get_type(void)
 gchar *                                                                        \
 ldm_ ## object ## _get_ ## property(const klass * const o)                     \
 {                                                                              \
-    const size_t len = strlen(o->priv->property) + 1;                          \
+    gpointer p = o->priv->property;                                            \
+    if (p == NULL) return NULL;                                                \
+                                                                               \
+    const size_t len = strlen(p) + 1;                                          \
     gchar * const r = g_malloc(len);                                           \
-    memcpy(r, o->priv->property, len);                                         \
+    memcpy(r, p, len);                                                         \
     return r;                                                                  \
 }
 

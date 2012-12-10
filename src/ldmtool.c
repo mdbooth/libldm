@@ -300,8 +300,10 @@ show_volume(LDM *const ldm, const gint argc, gchar ** const argv,
             json_builder_add_int_value(jb, size);
             json_builder_set_member_name(jb, "chunk-size");
             json_builder_add_int_value(jb, chunk_size);
-            json_builder_set_member_name(jb, "hint");
-            json_builder_add_string_value(jb, hint);
+            if (hint != NULL) {
+                json_builder_set_member_name(jb, "hint");
+                json_builder_add_string_value(jb, hint);
+            }
 
             json_builder_set_member_name(jb, "partitions");
             json_builder_begin_array(jb);
