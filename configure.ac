@@ -85,14 +85,14 @@ PKG_CHECK_MODULES([GIO_UNIX], [gio-unix-2.0 >= 2.32.0],
     ]
 )
 
-PKG_CHECK_MODULES([ZLIB], [zlib >= 1.2.5],
+PKG_CHECK_MODULES([ZLIB], [zlib >= 1.2],
     [
         AC_SUBST([ZLIB_CFLAGS])
         AC_SUBST([ZLIB_LIBS])
     ]
 )
 
-PKG_CHECK_MODULES([UUID], [uuid >= 2.21.0],
+PKG_CHECK_MODULES([UUID], [uuid],
     [
         AC_SUBST([UUID_CFLAGS])
         AC_SUBST([UUID_LIBS])

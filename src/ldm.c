@@ -2762,7 +2762,7 @@ _dm_create_mirrored(const LDMVolumePrivate * const vol, GError ** const err)
         GString * chunk = _dm_create_part(part, cookie, err);
         if (chunk == NULL) {
             if (err && (*err)->code == LDM_ERROR_MISSING_DISK) {
-                g_warning((*err)->message);
+                g_warning("%s", (*err)->message);
                 g_error_free(*err); *err = NULL;
                 g_string_append(target.params, " - -");
                 continue;
@@ -2807,7 +2807,7 @@ out:
         for (int i = devices->len; i > 0; i--) {
             GString *device = g_array_index(devices, GString *, i - 1);
             if (!_dm_remove(device->str, 0, &cleanup_err)) {
-                g_warning(cleanup_err->message);
+                g_warning("%s", cleanup_err->message);
                 g_error_free(cleanup_err); cleanup_err = NULL;
             }
         }
@@ -2850,7 +2850,7 @@ _dm_create_raid5(const LDMVolumePrivate * const vol, GError ** const err)
         GString * chunk = _dm_create_part(part, cookie, err);
         if (chunk == NULL) {
             if (err && (*err)->code == LDM_ERROR_MISSING_DISK) {
-                g_warning((*err)->message);
+                g_warning("%s", (*err)->message);
                 g_error_free(*err); *err = NULL;
                 g_string_append(target.params, " - -");
                 continue;
@@ -2895,7 +2895,7 @@ out:
         for (int i = devices->len; i > 0; i--) {
             GString *device = g_array_index(devices, GString *, i - 1);
             if (!_dm_remove(device->str, 0, &cleanup_err)) {
-                g_warning(cleanup_err->message);
+                g_warning("%s", cleanup_err->message);
                 g_error_free(cleanup_err); cleanup_err = NULL;
             }
         }
