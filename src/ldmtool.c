@@ -87,7 +87,7 @@ typedef struct {
     const _action_t action;
 } _command_t;
 
-static const _command_t const commands[] = {
+static const _command_t commands[] = {
     { "scan", ldm_scan },
     { "show", ldm_show },
     { "create", ldm_create },
