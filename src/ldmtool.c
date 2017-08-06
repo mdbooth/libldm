@@ -626,7 +626,7 @@ shell(LDM * const ldm, gchar ** const devices,
         history_len++;
         free(line);
 
-        gboolean result;
+        gboolean result = FALSE;
         if (!do_command(ldm, argc, argv, &result, out, jg, jb)) {
             if (g_strcmp0("quit", argv[0]) == 0 ||
                 g_strcmp0("exit", argv[0]) == 0)
