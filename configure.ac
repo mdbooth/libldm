@@ -15,7 +15,7 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 AC_PREREQ([2.68])
-AC_INIT([libldm], [0.2.3], [mbooth@redhat.com])
+AC_INIT([libldm], [0.2.4], [mbooth@redhat.com])
 AC_CONFIG_AUX_DIR([build-aux])
 AC_CONFIG_SRCDIR([src/ldm.c])
 AC_CONFIG_HEADERS([config.h])
