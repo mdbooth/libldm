@@ -1,0 +1,10 @@
+libldm is a tool and library for managing Microsoft Windows
+Dynamic Disks.
+
+Please send patches to libguestfs@redhat.com (you don't need
+to subscribe).
+
+WARNING!  Running the test suite (‘make check’) will run various
+dmsetup commands as root using sudo.  Although this shouldn't
+be unsafe, it's probably a good idea to only run the test suite
+inside a virtual machine.
