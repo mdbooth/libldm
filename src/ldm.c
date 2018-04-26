@@ -1345,7 +1345,7 @@ _read_privhead_gpt(const int fd, const gchar * const path, const guint secsize,
 
     for (uint32_t i = 0; i < gpt.pte_array_len; i++) {
         gpt_pte_t pte;
-        r = gpt_get_pte(h, 0, &pte);
+        r = gpt_get_pte(h, i, &pte);
         if (r < 0) {
             _map_gpt_error(r, path, err);
             gpt_close(h);
