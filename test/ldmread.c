@@ -31,7 +31,9 @@ int main(int argc, const char *argv[])
         return 1;
     }
 
+#if !GLIB_CHECK_VERSION(2,35,0)
     g_type_init();
+#endif
 
     LDM *ldm = ldm_new();
 

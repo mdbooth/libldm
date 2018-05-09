@@ -626,7 +626,7 @@ shell(LDM * const ldm, gchar ** const devices,
         history_len++;
         free(line);
 
-        gboolean result;
+        gboolean result = FALSE;
         if (!do_command(ldm, argc, argv, &result, out, jg, jb)) {
             if (g_strcmp0("quit", argv[0]) == 0 ||
                 g_strcmp0("exit", argv[0]) == 0)
@@ -779,7 +779,9 @@ main(int argc, char *argv[])
     }
     g_option_context_free(context);
 
+#if !GLIB_CHECK_VERSION(2,35,0)
     g_type_init();
+#endif
 
     LDM * const ldm = ldm_new(&err);
 

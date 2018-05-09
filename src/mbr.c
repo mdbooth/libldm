@@ -49,13 +49,13 @@ int mbr_read(int fd, mbr_t *mbr)
 {
     struct _mbr _mbr;
 
-    size_t read = 0;
-    while (read < sizeof(_mbr)) {
-        ssize_t in = pread(fd, &_mbr + read, sizeof(struct _mbr) - read, read);
+    size_t rb = 0;
+    while (rb < sizeof(_mbr)) {
+        ssize_t in = pread(fd, &_mbr + rb, sizeof(struct _mbr) - rb, rb);
         if (in == 0) return -MBR_ERROR_INVALID;
         if (in == -1) return -MBR_ERROR_READ;
 
-        read += in;
+        rb += in;
     }
 
     if (_mbr.magic[0] != 0x55 || _mbr.magic[1] != 0xAA)

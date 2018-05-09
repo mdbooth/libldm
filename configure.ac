@@ -15,7 +15,7 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 AC_PREREQ([2.68])
-AC_INIT([libldm], [0.2.3], [mbooth@redhat.com])
+AC_INIT([libldm], [0.2.4], [mbooth@redhat.com])
 AC_CONFIG_AUX_DIR([build-aux])
 AC_CONFIG_SRCDIR([src/ldm.c])
 AC_CONFIG_HEADERS([config.h])
@@ -85,14 +85,14 @@ PKG_CHECK_MODULES([GIO_UNIX], [gio-unix-2.0 >= 2.32.0],
     ]
 )
 
-PKG_CHECK_MODULES([ZLIB], [zlib >= 1.2.5],
+PKG_CHECK_MODULES([ZLIB], [zlib >= 1.2],
     [
         AC_SUBST([ZLIB_CFLAGS])
         AC_SUBST([ZLIB_LIBS])
     ]
 )
 
-PKG_CHECK_MODULES([UUID], [uuid >= 2.21.0],
+PKG_CHECK_MODULES([UUID], [uuid],
     [
         AC_SUBST([UUID_CFLAGS])
         AC_SUBST([UUID_LIBS])
