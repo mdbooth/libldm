@@ -279,6 +279,7 @@ show_volume(LDM *const ldm, const gint argc, gchar ** const argv,
         LDMVolume * const vol = g_array_index(volumes, LDMVolume *, i);
 
         gchar *name = ldm_volume_get_name(vol);
+        gchar* guid = ldm_volume_get_guid(vol);
         LDMVolumeType type = ldm_volume_get_voltype(vol);
         guint64 size = ldm_volume_get_size(vol);
         guint64 chunk_size = ldm_volume_get_chunk_size(vol);
@@ -294,6 +295,8 @@ show_volume(LDM *const ldm, const gint argc, gchar ** const argv,
 
             json_builder_set_member_name(jb, "name");
             json_builder_add_string_value(jb, name);
+            json_builder_set_member_name(jb, "guid");
+            json_builder_add_string_value(jb, guid);
             json_builder_set_member_name(jb, "type");
             json_builder_add_string_value(jb, type_v->value_nick);
             json_builder_set_member_name(jb, "size");
@@ -323,6 +326,7 @@ show_volume(LDM *const ldm, const gint argc, gchar ** const argv,
         }
 
         g_free(name);
+        g_free(guid);
         g_free(hint);
 
         if (found) break;

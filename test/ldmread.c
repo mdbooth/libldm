@@ -73,6 +73,7 @@ int main(int argc, const char *argv[])
 
             {
                 gchar *name;
+                gchar *guid;
                 LDMVolumeType type;
                 guint64 size;
                 guint32 part_type;
@@ -80,15 +81,16 @@ int main(int argc, const char *argv[])
                 guint64 chunk_size;
 
                 g_object_get(vol, "name", &name, "type", &type,
-                                  "size", &size, "part-type", &part_type,
-                                  "hint", &hint, "chunk-size", &chunk_size,
-                                  NULL);
+                                  "guid", &guid, "size", &size,
+                                  "part-type", &part_type, "hint", &hint,
+                                  "chunk-size", &chunk_size, NULL);
 
                 GEnumValue * const type_v =
                     g_enum_get_value(g_type_class_peek(LDM_TYPE_VOLUME_TYPE),
                                      type);
 
                 printf("  Volume: %s\n", name);
+                printf("    GUID: %s\n", guid);
                 printf("    Type:       %s\n", type_v->value_nick);
                 printf("    Size:       %lu\n", size);
                 printf("    Part Type:  %hhu\n", part_type);
@@ -96,6 +98,7 @@ int main(int argc, const char *argv[])
                 printf("    Chunk Size: %lu\n", chunk_size);
 
                 g_free(name);
+                g_free(guid);
                 g_free(hint);
             }
 
