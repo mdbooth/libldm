@@ -370,6 +370,16 @@ GArray *ldm_volume_get_partitions(LDMVolume *o);
 gchar *ldm_volume_get_name(const LDMVolume *o);
 
 /**
+ * ldm_volume_get_guid:
+ * @o: An #LDMVolume
+ *
+ * Get the Windows-assigned GUID of a volume.
+ *
+ * Returns: (transfer full): The string representation of the GUID
+ */
+gchar *ldm_volume_get_guid(const LDMVolume *o);
+
+/**
  * ldm_volume_get_voltype:
  * @o: An #LDMVolume
  *
