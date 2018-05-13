@@ -2615,7 +2615,7 @@ _dm_create_part(const LDMPartitionPrivate * const part, uint32_t cookie,
 static GString *
 _dm_create_spanned(const LDMVolumePrivate * const vol, GError ** const err)
 {
-    static GString *name = NULL;
+    GString *name = NULL;
     guint i = 0;
     struct dm_target *targets = g_malloc(sizeof(*targets) * vol->parts->len);
 
@@ -2682,7 +2682,7 @@ out:
 static GString *
 _dm_create_striped(const LDMVolumePrivate * const vol, GError ** const err)
 {
-    static GString *name = NULL;
+    GString *name = NULL;
     struct dm_target target;
 
     target.start = 0;
@@ -2961,7 +2961,7 @@ ldm_volume_dm_create(const LDMVolume * const o, GString **created,
         return TRUE;
     }
     dm_tree_free(tree); tree = NULL;
-    g_string_free(name, TRUE);
+    g_string_free(name, TRUE); name = NULL;
 
     switch (vol->type) {
     case LDM_VOLUME_TYPE_SIMPLE:
