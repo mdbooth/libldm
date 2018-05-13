@@ -292,6 +292,8 @@ ldm_init(LDM * const o)
 {
     o->priv = LDM_GET_PRIVATE(o);
     bzero(o->priv, sizeof(*o->priv));
+
+    dm_set_name_mangling_mode(DM_STRING_MANGLING_AUTO);
 }
 
 static void
@@ -2379,6 +2381,17 @@ ldm_partition_get_disk(LDMPartition * const o)
 }
 
 static GString *
+_dm_part_name(const LDMPartitionPrivate * const part)
+{
+    const LDMDiskPrivate * const disk = part->disk->priv;
+
+    GString * name = g_string_new("");
+    g_string_printf(name, "ldm_part_%s_%s", disk->dgname, part->name);
+
+    return name;
+}
+
+static GString *
 _dm_vol_name(const LDMVolumePrivate * const vol)
 {
     GString * r = g_string_new("");
@@ -2492,9 +2505,11 @@ _find_device_tree_node(struct dm_tree * const tree,
 gboolean
 _dm_create(const gchar * const name, uint32_t udev_cookie,
            const guint n_targets, const struct dm_target * const targets,
-           GError ** const err)
+           GString **mangled_name, GError ** const err)
 {
     gboolean r = TRUE;
+
+    if (mangled_name) *mangled_name = NULL;
 
     struct dm_task * const task = dm_task_create(DM_DEVICE_CREATE);
     if (!task) {
@@ -2538,6 +2553,12 @@ _dm_create(const gchar * const name, uint32_t udev_cookie,
         g_set_error_literal(err, LDM_ERROR, LDM_ERROR_EXTERNAL,
                             _dm_err_last_msg);
         r = FALSE; goto out;
+    }
+
+    if (mangled_name) {
+        char *tmp = dm_task_get_name_mangled(task);
+        *mangled_name = g_string_new(tmp);
+        dm_free(tmp);
     }
 
 out:
@@ -2613,28 +2634,16 @@ _dm_create_part(const LDMPartitionPrivate * const part, uint32_t cookie,
     g_string_printf(target.params, "%s %" PRIu64,
                     disk->device, disk->data_start + part->start);
 
-    /* Ensure we sanitise table names */
-    char * dgname_esc =
-        g_uri_escape_string(disk->dgname,
-                            G_URI_RESERVED_CHARS_ALLOWED_IN_PATH_ELEMENT,
-                            FALSE);
-    char * partname_esc =
-        g_uri_escape_string(part->name,
-                            G_URI_RESERVED_CHARS_ALLOWED_IN_PATH_ELEMENT,
-                            FALSE);
+    GString *name = _dm_part_name(part);
+    GString *mangled_name = NULL;
 
-    GString *name = g_string_new("");
-    g_string_printf(name, "ldm_part_%s_%s", dgname_esc, partname_esc);
-    g_free(dgname_esc);
-    g_free(partname_esc);
-
-    if (!_dm_create(name->str, cookie, 1, &target, err)) {
-        g_string_free(name, TRUE);
-        name = NULL;
+    if (!_dm_create(name->str, cookie, 1, &target, &mangled_name, err)) {
+        mangled_name = NULL;
     }
 
+    g_string_free(name, TRUE);
     g_string_free(target.params, TRUE);
-    return name;
+    return mangled_name;
 }
 
 static GString *
@@ -2687,7 +2696,7 @@ _dm_create_spanned(const LDMVolumePrivate * const vol, GError ** const err)
 
     name = _dm_vol_name(vol);
 
-    if (!_dm_create(name->str, cookie, vol->parts->len, targets, err)) {
+    if (!_dm_create(name->str, cookie, vol->parts->len, targets, NULL, err)) {
         g_string_free(name, TRUE);
         name = NULL;
     }
@@ -2744,7 +2753,7 @@ _dm_create_striped(const LDMVolumePrivate * const vol, GError ** const err)
 
     name = _dm_vol_name(vol);
 
-    if (!_dm_create(name->str, cookie, 1, &target, err)) {
+    if (!_dm_create(name->str, cookie, 1, &target, NULL, err)) {
         g_string_free(name, TRUE);
         name = NULL;
     }
@@ -2818,7 +2827,7 @@ _dm_create_mirrored(const LDMVolumePrivate * const vol, GError ** const err)
 
     name = _dm_vol_name(vol);
 
-    if (!_dm_create(name->str, cookie, 1, &target, err)) {
+    if (!_dm_create(name->str, cookie, 1, &target, NULL, err)) {
         g_string_free(name, TRUE);
         name = NULL;
     }
@@ -2906,7 +2915,7 @@ _dm_create_raid5(const LDMVolumePrivate * const vol, GError ** const err)
 
     name = _dm_vol_name(vol);
 
-    if (!_dm_create(name->str, cookie, 1, &target, err)) {
+    if (!_dm_create(name->str, cookie, 1, &target, NULL, err)) {
         g_string_free(name, TRUE); name = NULL;
         goto out;
     }
