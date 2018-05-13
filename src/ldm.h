@@ -443,7 +443,8 @@ guint64 ldm_volume_get_chunk_size(const LDMVolume *o);
  * @o: An #LDMVolume
  *
  * Get the name of the device mapper device which will be created for this
- * volume.
+ * volume. Note that returned name is unmangled. Device mapper will mangle
+ * actual device name if it contains invalid characters.
  *
  * Returns: (transfer full): The device mapper name
  */
