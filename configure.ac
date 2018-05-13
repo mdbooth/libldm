@@ -99,7 +99,7 @@ PKG_CHECK_MODULES([UUID], [uuid],
     ]
 )
 
-PKG_CHECK_MODULES([DEVMAPPER], [devmapper >= 1.0],
+PKG_CHECK_MODULES([DEVMAPPER], [devmapper >= 1.02],
     [
         AC_SUBST([DEVMAPPER_CFLAGS])
         AC_SUBST([DEVMAPPER_LIBS])

@@ -9,7 +9,7 @@ Source0:        %{url}/downloads/%{name}-%{version}.tar.gz
 
 BuildRequires:  glib2-devel >= 2.26.0
 BuildRequires:  json-glib-devel >= 0.14.0
-BuildRequires:  device-mapper-devel >= 1.0
+BuildRequires:  device-mapper-devel >= 1.02
 BuildRequires:  zlib-devel libuuid-devel readline-devel
 
 
