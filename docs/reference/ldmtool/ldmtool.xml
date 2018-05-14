@@ -255,6 +255,12 @@
                 </listitem>
             </varlistentry>
             <varlistentry>
+                <term>guid</term>
+                <listitem>
+                    <para>The Windows-assigned GUID of the volume</para>
+                </listitem>
+            </varlistentry>
+            <varlistentry>
                 <term>type</term>
                 <listitem>
                     <para>
@@ -568,6 +574,7 @@ ldm> show diskgroup 06495a84-fbfd-11e1-8cf9-52540061f5db
 ldm> show volume 06495a84-fbfd-11e1-8cf9-52540061f5db Volume1
 {
   "name" : "Volume1",
+  "guid" : "c08309e9-1d30-43e5-8dc3-fcec8be76fcc",
   "type" : "spanned",
   "size" : 129024,
   "chunk-size" : 0,
