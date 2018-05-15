@@ -3033,6 +3033,8 @@ gboolean
 ldm_volume_dm_create(const LDMVolume * const o, GString **created,
                      GError ** const err)
 {
+    if (created) *created = NULL;
+
     const LDMVolumePrivate * const vol = o->priv;
 
     /* We should really store the previous logging function and restore it
@@ -3077,14 +3079,22 @@ ldm_volume_dm_create(const LDMVolume * const o, GString **created,
 
     dm_log_with_errno_init(NULL);
 
-    if (created && name) *created = name;
-    return name == NULL ? FALSE : TRUE;
+    gboolean r = name != NULL;
+    
+    if (created)
+        *created = name;
+    else if (name)
+        g_string_free(name, TRUE);
+
+    return r;
 }
 
 gboolean
 ldm_volume_dm_remove(const LDMVolume * const o, GString **removed,
                      GError ** const err)
 {
+    if (removed) *removed = NULL;
+
     const LDMVolumePrivate * const vol = o->priv;
 
     /* We should really store the previous logging function and restore it
@@ -3129,7 +3139,11 @@ ldm_volume_dm_remove(const LDMVolume * const o, GString **removed,
 
 out:
     dm_tree_free(tree);
-    if (removed && name) *removed = name;
+
+    if (removed)
+        *removed = name;
+    else if (name)
+        g_string_free(name, TRUE);
 
     dm_log_with_errno_init(NULL);
 
