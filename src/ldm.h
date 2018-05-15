@@ -451,6 +451,20 @@ guint64 ldm_volume_get_chunk_size(const LDMVolume *o);
 GString *ldm_volume_dm_get_name(const LDMVolume *o);
 
 /**
+ * ldm_volume_dm_get_device:
+ * @o: An #LDMVolume
+ * @err: A #GError to receive any generated errors
+ *
+ * Get the host device mapper device which was created for this volume
+ * (e.g. /dev/mapper/ldm_vol_Red-nzv8x6obywgDg0_Volume3). It is dynamic
+ * runtime property and it will be NULL if device mapper device is absent.
+ *
+ * Returns: (transfer full): The host device mapper device if present,
+ *          or NULL otherwise
+ */
+gchar *ldm_volume_dm_get_device(const LDMVolume * const o, GError **err);
+
+/**
  * ldm_volume_dm_create:
  * @o: An #LDMVolume
  * @created: (out): The name of the created device, if any
