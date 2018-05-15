@@ -61,7 +61,7 @@ int main(int argc, const char *argv[])
             g_object_get(dg, "guid", &guid, "name", &name, NULL);
 
             printf("Disk Group: %s\n", name);
-            printf("  GUID: %s\n", guid);
+            printf("  GUID:   %s\n", guid);
 
             g_free(guid);
             g_free(name);
@@ -93,13 +93,13 @@ int main(int argc, const char *argv[])
                 gchar *device = ldm_volume_dm_get_device(vol, &err);
 
                 printf("  Volume: %s\n", name);
-                printf("    GUID: %s\n", guid);
+                printf("    GUID:       %s\n", guid);
                 printf("    Type:       %s\n", type_v->value_nick);
                 printf("    Size:       %lu\n", size);
                 printf("    Part Type:  %hhu\n", part_type);
                 printf("    Hint:       %s\n", hint);
                 printf("    Chunk Size: %lu\n", chunk_size);
-                printf("    Device: %s\n", device);
+                printf("    Device:     %s\n", device);
 
                 g_free(name);
                 g_free(guid);
@@ -121,11 +121,17 @@ int main(int argc, const char *argv[])
                     g_object_get(part, "name", &name, "start", &start,
                                        "size", &size, NULL);
 
+                    GError *err = NULL;
+                    gchar *device = ldm_partition_dm_get_device(part, &err);
+
                     printf("    Partition: %s\n", name);
-                    printf("      Start: %lu\n", start);
-                    printf("      Size:  %lu\n", size);
+                    printf("        Start:  %lu\n", start);
+                    printf("        Size:   %lu\n", size);
+                    printf("        Device: %s\n", device);
 
                     g_free(name);
+                    g_free(device);
+                    if (err) g_error_free(err);
                 }
 
                 LDMDisk * const disk = ldm_partition_get_disk(part);
@@ -147,13 +153,13 @@ int main(int argc, const char *argv[])
                                        "metadata-size", &metadata_size,
                                        NULL);
 
-                    printf("      Disk: %s\n", name);
-                    printf("        GUID:   %s\n", guid);
-                    printf("        Device: %s\n", device);
-                    printf("        Data Start: %lu\n", data_start);
-                    printf("        Data Size: %lu\n", data_size);
-                    printf("        Metadata Start: %lu\n", metadata_start);
-                    printf("        Metadata Size: %lu\n", metadata_size);
+                    printf("        Disk: %s\n", name);
+                    printf("          GUID:           %s\n", guid);
+                    printf("          Device:         %s\n", device);
+                    printf("          Data Start:     %lu\n", data_start);
+                    printf("          Data Size:      %lu\n", data_size);
+                    printf("          Metadata Start: %lu\n", metadata_start);
+                    printf("          Metadata Size:  %lu\n", metadata_size);
 
                     g_free(name);
                     g_free(guid);
