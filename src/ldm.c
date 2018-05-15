@@ -2840,6 +2840,8 @@ _dm_create_mirrored(const LDMVolumePrivate * const vol, GError ** const err)
         goto out;
     }
 
+    const char *dir = dm_dir();
+
     int found = 0;
     for (guint i = 0; i < vol->parts->len; i++) {
         const LDMPartition * const part_o =
@@ -2860,7 +2862,7 @@ _dm_create_mirrored(const LDMVolumePrivate * const vol, GError ** const err)
 
         found++;
         g_array_append_val(devices, chunk);
-        g_string_append_printf(target.params, " - /dev/mapper/%s", chunk->str);
+        g_string_append_printf(target.params, " - %s/%s", dir, chunk->str);
     }
 
     if (found == 0) {
@@ -2932,6 +2934,8 @@ _dm_create_raid5(const LDMVolumePrivate * const vol, GError ** const err)
         goto out;
     }
 
+    const char *dir = dm_dir();
+
     guint n_found = 0;
     for (guint i = 0; i < vol->parts->len; i++) {
         const LDMPartition * const part_o =
@@ -2952,7 +2956,7 @@ _dm_create_raid5(const LDMVolumePrivate * const vol, GError ** const err)
 
         n_found++;
         g_array_append_val(devices, chunk);
-        g_string_append_printf(target.params, " - /dev/mapper/%s", chunk->str);
+        g_string_append_printf(target.params, " - %s/%s", dir, chunk->str);
     }
 
     if (n_found < vol->parts->len - 1) {
