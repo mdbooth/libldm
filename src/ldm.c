@@ -2501,38 +2501,6 @@ error:
     return NULL;
 }
 
-static struct dm_tree_node *
-_walk_tree(const struct dm_tree * const tree,
-           const struct dm_tree_node * const node,
-           const char * const search)
-{
-    void *handle = NULL;
-    struct dm_tree_node *child;
-    for (;;) {
-        child = dm_tree_next_child(&handle, node, 0);
-        if (!child) return NULL;
-
-        const char * const name = dm_tree_node_get_name(child);
-        if (!name || *name == '\0') continue;
-
-        if (g_strcmp0(search, name) == 0) return child;
-
-        if (dm_tree_node_num_children(child, 0) > 0) {
-            struct dm_tree_node * const r_search =
-                _walk_tree(tree, child, search);
-            if (r_search) return r_search;
-        }
-    }
-}
-
-static struct dm_tree_node *
-_find_device_tree_node(struct dm_tree * const tree,
-                       const char * const name)
-{
-    const struct dm_tree_node * const root = dm_tree_find_node(tree, 0, 0);
-    return _walk_tree(tree, root, name);
-}
-
 gboolean
 _dm_create(const gchar * const name, const gchar * const uuid,
            uint32_t udev_cookie, const guint n_targets,
@@ -2900,6 +2868,7 @@ out:
     }
 
     g_string_free(target.params, TRUE);
+
     return name;
 }
 
@@ -3045,15 +3014,17 @@ ldm_volume_dm_create(const LDMVolume * const o, GString **created,
     struct dm_tree *tree = _get_device_tree(err);
     if (!tree) return FALSE;
 
-    GString *name = _dm_vol_name(vol);
-    struct dm_tree_node *node = _find_device_tree_node(tree, name->str);
+    GString *uuid = _dm_vol_uuid(vol);
+    struct dm_tree_node *node = dm_tree_find_node_by_uuid(tree, uuid->str);
+    g_string_free(uuid, TRUE);
+
     if (node) {
         dm_tree_free(tree); tree = NULL;
         return TRUE;
     }
     dm_tree_free(tree); tree = NULL;
-    g_string_free(name, TRUE); name = NULL;
 
+    GString *name = NULL;
     switch (vol->type) {
     case LDM_VOLUME_TYPE_SIMPLE:
     case LDM_VOLUME_TYPE_SPANNED:
@@ -3106,17 +3077,20 @@ ldm_volume_dm_remove(const LDMVolume * const o, GString **removed,
 
     gboolean r = FALSE;
 
-    GString *name = _dm_vol_name(vol);
-    struct dm_tree_node *node = _find_device_tree_node(tree, name->str);
+    GString *uuid = _dm_vol_uuid(vol);
+    struct dm_tree_node *node = dm_tree_find_node_by_uuid(tree, uuid->str);
+    g_string_free(uuid, TRUE);
+
+    GString *name = NULL;
     if (node) {
         uint32_t cookie;
         if (!dm_udev_create_cookie(&cookie)) {
             g_set_error(err, LDM_ERROR, LDM_ERROR_EXTERNAL,
                         "dm_udev_create_cookie: %s", _dm_err_last_msg);
-            g_string_free(name, TRUE); name = NULL;
             goto out;
         }
 
+        name = _dm_vol_name(vol);
         if (!_dm_remove(name->str, cookie, err)) {
             g_string_free(name, TRUE); name = NULL;
             goto out;
@@ -3131,8 +3105,6 @@ ldm_volume_dm_remove(const LDMVolume * const o, GString **removed,
         }
 
         dm_udev_wait(cookie);
-    } else {
-        g_string_free(name, TRUE); name = NULL;
     }
 
     r = TRUE;
