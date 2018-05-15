@@ -376,6 +376,14 @@ show_partition(LDM *const ldm, const gint argc, gchar ** const argv,
             gchar *diskname = ldm_disk_get_name(disk);
             g_object_unref(disk);
 
+            GError *err = NULL;
+            gchar *device = ldm_partition_dm_get_device(part, &err);
+            if (err) {
+                g_warning("Unable to get device for partition %s on disk %s: %s",
+                          name, diskname, err->message);
+                g_error_free(err);
+            }
+
             json_builder_begin_object(jb);
 
             json_builder_set_member_name(jb, "name");
@@ -386,10 +394,15 @@ show_partition(LDM *const ldm, const gint argc, gchar ** const argv,
             json_builder_add_int_value(jb, size);
             json_builder_set_member_name(jb, "disk");
             json_builder_add_string_value(jb, diskname);
+            if (device != NULL) {
+                json_builder_set_member_name(jb, "device");
+                json_builder_add_string_value(jb, device);
+            }
 
             json_builder_end_object(jb);
 
             g_free(diskname);
+            g_free(device);
         }
 
         g_free(name);

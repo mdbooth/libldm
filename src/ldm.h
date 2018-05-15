@@ -539,6 +539,20 @@ guint64 ldm_partition_get_start(const LDMPartition *o);
 guint64 ldm_partition_get_size(const LDMPartition *o);
 
 /**
+ * ldm_partition_dm_get_device:
+ * @o: An #LDMPartition
+ * @err: A #GError to receive any generated errors
+ *
+ * Get the host device mapper device which was created for this partition
+ * (e.g. /dev/mapper/ldm_part_Red-nzv8x6obywgDg0_Disk1-01). It is dynamic
+ * runtime property and it will be NULL if device mapper device is absent.
+ *
+ * Returns: (transfer full): The host device mapper device if present,
+ *          or NULL otherwise
+ */
+gchar *ldm_partition_dm_get_device(const LDMPartition * const o, GError **err);
+
+/**
  * ldm_disk_get_name
  * @o: An #LDMDisk
  *
