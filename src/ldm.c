@@ -2446,7 +2446,7 @@ struct dm_target {
 };
 
 static struct dm_tree *
-_get_device_tree(GError **err)
+_dm_get_device_tree(GError **err)
 {
     struct dm_tree *tree;
     tree = dm_tree_create();
@@ -2499,6 +2499,42 @@ error:
     if (tree) dm_tree_free(tree);
     if (task) dm_task_destroy(task);
     return NULL;
+}
+
+/* Returns TRUE if device with specified UUID is found or FALSE otherwise.
+ *
+ * Found device node is returned if dm_node is not NULL. In this case dm_tree
+ * MUST not be NULL as well. And the caller is responsible to free device tree
+ * by calling dm_tree_free function.
+ */
+gboolean
+_dm_find_tree_node_by_uuid(const gchar * const uuid,
+                                struct dm_tree_node ** dm_node,
+                                struct dm_tree ** dm_tree,
+                                GError ** const err)
+{
+    gboolean r = FALSE;
+
+    if (dm_node) {
+        g_assert(dm_tree != NULL);
+        *dm_node = NULL;
+    }
+    if (dm_tree) *dm_tree = NULL;
+
+    struct dm_tree *tree = _dm_get_device_tree(err);
+    if (tree) {
+        struct dm_tree_node *node = dm_tree_find_node_by_uuid(tree, uuid);
+        if (node) r = TRUE;
+
+        if (dm_tree)
+            *dm_tree = tree;
+        else
+            dm_tree_free(tree);
+
+        if (dm_node) *dm_node = node;
+    }
+
+    return r;
 }
 
 gboolean
@@ -3011,18 +3047,12 @@ ldm_volume_dm_create(const LDMVolume * const o, GString **created,
     dm_log_with_errno_init(_dm_log_fn);
 
     /* Check if the device already exists */
-    struct dm_tree *tree = _get_device_tree(err);
-    if (!tree) return FALSE;
-
     GString *uuid = _dm_vol_uuid(vol);
-    struct dm_tree_node *node = dm_tree_find_node_by_uuid(tree, uuid->str);
-    g_string_free(uuid, TRUE);
-
-    if (node) {
-        dm_tree_free(tree); tree = NULL;
+    if (_dm_find_tree_node_by_uuid(uuid->str, NULL, NULL, err)) {
+        g_string_free(uuid, TRUE);
         return TRUE;
     }
-    dm_tree_free(tree); tree = NULL;
+    g_string_free(uuid, TRUE);
 
     GString *name = NULL;
     switch (vol->type) {
@@ -3072,17 +3102,17 @@ ldm_volume_dm_remove(const LDMVolume * const o, GString **removed,
      * afterwards, but the API doesn't allow this. */
     dm_log_with_errno_init(_dm_log_fn);
 
-    struct dm_tree *tree = _get_device_tree(err);
-    if (!tree) return FALSE;
-
     gboolean r = FALSE;
 
+    struct dm_tree *tree = NULL;
+    struct dm_tree_node *node = NULL;
+
     GString *uuid = _dm_vol_uuid(vol);
-    struct dm_tree_node *node = dm_tree_find_node_by_uuid(tree, uuid->str);
+    gboolean found = _dm_find_tree_node_by_uuid(uuid->str, &node, &tree, err);
     g_string_free(uuid, TRUE);
 
     GString *name = NULL;
-    if (node) {
+    if (found) {
         uint32_t cookie;
         if (!dm_udev_create_cookie(&cookie)) {
             g_set_error(err, LDM_ERROR, LDM_ERROR_EXTERNAL,
@@ -3110,7 +3140,7 @@ ldm_volume_dm_remove(const LDMVolume * const o, GString **removed,
     r = TRUE;
 
 out:
-    dm_tree_free(tree);
+    if (tree) dm_tree_free(tree);
 
     if (removed)
         *removed = name;
