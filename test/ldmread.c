@@ -89,6 +89,9 @@ int main(int argc, const char *argv[])
                     g_enum_get_value(g_type_class_peek(LDM_TYPE_VOLUME_TYPE),
                                      type);
 
+                GError *err = NULL;
+                gchar *device = ldm_volume_dm_get_device(vol, &err);
+
                 printf("  Volume: %s\n", name);
                 printf("    GUID: %s\n", guid);
                 printf("    Type:       %s\n", type_v->value_nick);
@@ -96,10 +99,13 @@ int main(int argc, const char *argv[])
                 printf("    Part Type:  %hhu\n", part_type);
                 printf("    Hint:       %s\n", hint);
                 printf("    Chunk Size: %lu\n", chunk_size);
+                printf("    Device: %s\n", device);
 
                 g_free(name);
                 g_free(guid);
                 g_free(hint);
+                g_free(device);
+                if (err) g_error_free(err);
             }
 
             GArray *parts = ldm_volume_get_partitions(vol);

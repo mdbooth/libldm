@@ -282,11 +282,19 @@ show_volume(LDM *const ldm, const gint argc, gchar ** const argv,
         if (g_strcmp0(name, argv[1]) == 0) {
             found = TRUE;
 
-            gchar* guid = ldm_volume_get_guid(vol);
+            gchar *guid = ldm_volume_get_guid(vol);
             LDMVolumeType type = ldm_volume_get_voltype(vol);
             guint64 size = ldm_volume_get_size(vol);
             guint64 chunk_size = ldm_volume_get_chunk_size(vol);
             gchar *hint = ldm_volume_get_hint(vol);
+
+            GError *err = NULL;
+            gchar *device = ldm_volume_dm_get_device(vol, &err);
+            if (err) {
+                g_warning("Unable to get device for volume %s with GUID %s: %s",
+                          name, guid, err->message);
+                g_error_free(err);
+            }
 
             json_builder_begin_object(jb);
 
@@ -307,6 +315,10 @@ show_volume(LDM *const ldm, const gint argc, gchar ** const argv,
                 json_builder_set_member_name(jb, "hint");
                 json_builder_add_string_value(jb, hint);
             }
+            if (device != NULL) {
+                json_builder_set_member_name(jb, "device");
+                json_builder_add_string_value(jb, device);
+            }
 
             json_builder_set_member_name(jb, "partitions");
             json_builder_begin_array(jb);
@@ -326,6 +338,7 @@ show_volume(LDM *const ldm, const gint argc, gchar ** const argv,
 
             g_free(guid);
             g_free(hint);
+            g_free(device);
         }
 
         g_free(name);

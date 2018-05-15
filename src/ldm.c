@@ -3043,6 +3043,62 @@ ldm_volume_dm_get_name(const LDMVolume * const o)
     return _dm_vol_name(o->priv);
 }
 
+gchar *
+ldm_volume_dm_get_device(const LDMVolume * const o, GError ** const err)
+{
+    GString *r = NULL;
+
+    GString *uuid = _dm_vol_uuid(o->priv);
+    struct dm_tree_node *node = NULL;
+    struct dm_tree *tree = NULL;
+    struct dm_task *task = NULL;
+
+    if (_dm_find_tree_node_by_uuid(uuid->str, &node, &tree, err)) {
+        const struct dm_info *info = dm_tree_node_get_info(node);
+
+        task = dm_task_create(DM_DEVICE_INFO);
+        if (!task) {
+            g_set_error(err, LDM_ERROR, LDM_ERROR_EXTERNAL,
+                        "dm_task_create: %s", _dm_err_last_msg);
+            goto error;
+        }
+
+        if (!dm_task_set_major(task, info->major)) {
+            g_set_error(err, LDM_ERROR, LDM_ERROR_EXTERNAL,
+                        "DM_DEVICE_INFO: dm_task_set_major(%d) failed: %s",
+                        info->major, _dm_err_last_msg);
+            goto error;
+        }
+
+        if (!dm_task_set_minor(task, info->minor)) {
+            g_set_error(err, LDM_ERROR, LDM_ERROR_EXTERNAL,
+                        "DM_DEVICE_INFO: dm_task_set_major(%d) failed: %s",
+                        info->minor, _dm_err_last_msg);
+            goto error;
+        }
+
+        if (!dm_task_run(task)) {
+            g_set_error_literal(err, LDM_ERROR, LDM_ERROR_EXTERNAL,
+                                _dm_err_last_msg);
+            goto error;
+        }
+
+        const char *dir = dm_dir();
+        char *mangled_name = dm_task_get_name_mangled(task);
+        r = g_string_new("");
+        g_string_printf(r, "%s/%s", dir, mangled_name);
+        dm_free(mangled_name);
+    }
+
+error:
+    if (tree) dm_tree_free(tree);
+    if (task) dm_task_destroy(task);
+    g_string_free(uuid, TRUE);
+
+    /* Really FALSE here - don't free but return the character data. */
+    return r ? g_string_free(r, FALSE) : NULL;
+}
+
 gboolean
 ldm_volume_dm_create(const LDMVolume * const o, GString **created,
                      GError ** const err)
