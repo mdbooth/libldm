@@ -279,14 +279,14 @@ show_volume(LDM *const ldm, const gint argc, gchar ** const argv,
         LDMVolume * const vol = g_array_index(volumes, LDMVolume *, i);
 
         gchar *name = ldm_volume_get_name(vol);
-        gchar* guid = ldm_volume_get_guid(vol);
-        LDMVolumeType type = ldm_volume_get_voltype(vol);
-        guint64 size = ldm_volume_get_size(vol);
-        guint64 chunk_size = ldm_volume_get_chunk_size(vol);
-        gchar *hint = ldm_volume_get_hint(vol);
-
         if (g_strcmp0(name, argv[1]) == 0) {
             found = TRUE;
+
+            gchar* guid = ldm_volume_get_guid(vol);
+            LDMVolumeType type = ldm_volume_get_voltype(vol);
+            guint64 size = ldm_volume_get_size(vol);
+            guint64 chunk_size = ldm_volume_get_chunk_size(vol);
+            gchar *hint = ldm_volume_get_hint(vol);
 
             json_builder_begin_object(jb);
 
@@ -323,11 +323,12 @@ show_volume(LDM *const ldm, const gint argc, gchar ** const argv,
             json_builder_end_array(jb);
 
             json_builder_end_object(jb);
+
+            g_free(guid);
+            g_free(hint);
         }
 
         g_free(name);
-        g_free(guid);
-        g_free(hint);
 
         if (found) break;
     }
@@ -347,16 +348,16 @@ show_partition(LDM *const ldm, const gint argc, gchar ** const argv,
 
     GArray * const parts = ldm_disk_group_get_partitions(dg);
     g_object_unref(dg);
+    gboolean found = FALSE;
     for (guint i = 0; i < parts->len; i++) {
         LDMPartition * const part = g_array_index(parts, LDMPartition *, i);
 
         gchar *name = ldm_partition_get_name(part);
-        guint64 start = ldm_partition_get_start(part);
-        guint64 size = ldm_partition_get_size(part);
-
-        gboolean found = FALSE;
         if (g_strcmp0(name, argv[1]) == 0) {
             found = TRUE;
+
+            guint64 start = ldm_partition_get_start(part);
+            guint64 size = ldm_partition_get_size(part);
 
             LDMDisk * const disk = ldm_partition_get_disk(part);
             gchar *diskname = ldm_disk_get_name(disk);
@@ -384,7 +385,7 @@ show_partition(LDM *const ldm, const gint argc, gchar ** const argv,
     }
     g_array_unref(parts);
 
-    return TRUE;
+    return found;
 }
 
 gboolean
@@ -403,15 +404,15 @@ show_disk(LDM *const ldm, const gint argc, gchar ** const argv,
         LDMDisk * const disk = g_array_index(disks, LDMDisk *, i);
 
         gchar *name = ldm_disk_get_name(disk);
-        gchar *guid = ldm_disk_get_guid(disk);
-        gchar *device = ldm_disk_get_device(disk);
-        guint64 data_start = ldm_disk_get_data_start(disk);
-        guint64 data_size = ldm_disk_get_data_size(disk);
-        guint64 metadata_start = ldm_disk_get_metadata_start(disk);
-        guint64 metadata_size = ldm_disk_get_metadata_size(disk);
-
         if (g_strcmp0(name, argv[1]) == 0) {
             found = TRUE;
+
+            gchar *guid = ldm_disk_get_guid(disk);
+            gchar *device = ldm_disk_get_device(disk);
+            guint64 data_start = ldm_disk_get_data_start(disk);
+            guint64 data_size = ldm_disk_get_data_size(disk);
+            guint64 metadata_start = ldm_disk_get_metadata_start(disk);
+            guint64 metadata_size = ldm_disk_get_metadata_size(disk);
 
             json_builder_begin_object(jb);
 
@@ -435,17 +436,18 @@ show_disk(LDM *const ldm, const gint argc, gchar ** const argv,
             }
 
             json_builder_end_object(jb);
+
+            g_free(guid);
+            g_free(device);
         }
 
         g_free(name);
-        g_free(guid);
-        g_free(device);
 
         if (found) break;
     }
     g_array_unref(disks);
 
-    return TRUE;
+    return found;
 }
 
 gboolean
