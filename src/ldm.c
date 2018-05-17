@@ -469,6 +469,7 @@ struct _LDMVolumePrivate
 {
     guint32 id;
     gchar *name;
+    uuid_t guid;
     gchar *dgname;
 
     guint64 size;
@@ -496,6 +497,7 @@ G_DEFINE_TYPE(LDMVolume, ldm_volume, G_TYPE_OBJECT)
 enum {
     PROP_LDM_VOLUME_PROP0,
     PROP_LDM_VOLUME_NAME,
+    PROP_LDM_VOLUME_GUID,
     PROP_LDM_VOLUME_TYPE,
     PROP_LDM_VOLUME_SIZE,
     PROP_LDM_VOLUME_PART_TYPE,
@@ -513,6 +515,14 @@ ldm_volume_get_property(GObject * const o, const guint property_id,
     switch (property_id) {
     case PROP_LDM_VOLUME_NAME:
         g_value_set_string(value, priv->name); break;
+
+    case PROP_LDM_VOLUME_GUID:
+        {
+            char guid_str[37];
+            uuid_unparse(priv->guid, guid_str);
+            g_value_set_string(value, guid_str);
+        }
+        break;
 
     case PROP_LDM_VOLUME_TYPE:
         g_value_set_enum(value, priv->type); break;
@@ -535,6 +545,7 @@ ldm_volume_get_property(GObject * const o, const guint property_id,
 }
 
 EXPORT_PROP_STRING(volume, LDMVolume, name)
+EXPORT_PROP_GUID(volume, LDMVolume)
 EXPORT_PROP_SCALAR(volume, LDMVolume, size, guint64)
 EXPORT_PROP_SCALAR(volume, LDMVolume, part_type, guint8)
 EXPORT_PROP_STRING(volume, LDMVolume, hint)
@@ -589,6 +600,20 @@ ldm_volume_class_init(LDMVolumeClass * const klass)
         PROP_LDM_VOLUME_NAME,
         g_param_spec_string(
             "name", "Name", "The volume's name",
+            NULL, G_PARAM_READABLE | G_PARAM_STATIC_STRINGS
+        )
+    );
+
+    /**
+    * LDMVolume:guid:
+    *
+    * The GUID of the volume.
+    */
+    g_object_class_install_property(
+        object_class,
+        PROP_LDM_VOLUME_GUID,
+        g_param_spec_string(
+            "guid", "GUID", "The GUID of the volume",
             NULL, G_PARAM_READABLE | G_PARAM_STATIC_STRINGS
         )
     );
@@ -1514,8 +1539,8 @@ _parse_vblk_vol(const guint8 revision, const guint16 flags,
 
     vol->part_type = *((uint8_t *)vblk); vblk++;
 
-    /* Volume id */
-    vblk += 16;
+    /* Volume GUID */
+    memcpy(&vol->guid, vblk, 16); vblk += 16;
 
     if (flags & 0x08) vol->id1 = _parse_var_string(&vblk);
     if (flags & 0x20) vol->id2 = _parse_var_string(&vblk);
