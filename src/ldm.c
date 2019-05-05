@@ -2774,12 +2774,23 @@ _dm_create_part(const LDMPartitionPrivate * const part, uint32_t cookie,
     return mangled_name;
 }
 
+gint
+_cmp_component_vol_offset(gconstpointer a, gconstpointer b)
+{
+    const LDMPartition * const ao = LDM_PARTITION(*(LDMPartition **)a);
+    const LDMPartition * const bo = LDM_PARTITION(*(LDMPartition **)b);
+
+    return ao->priv->vol_offset - bo->priv->vol_offset;
+}
+
 static GString *
 _dm_create_spanned(const LDMVolumePrivate * const vol, GError ** const err)
 {
     GString *name = NULL;
     guint i = 0;
     struct dm_target *targets = g_malloc(sizeof(*targets) * vol->parts->len);
+
+    g_array_sort(vol->parts, _cmp_component_vol_offset);
 
     uint64_t pos = 0;
     for (; i < vol->parts->len; i++) {
