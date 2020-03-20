@@ -304,9 +304,6 @@ ldm_ ## object ## _get_ ## property(const klass * const o)                     \
 
 /* LDM */
 
-#define LDM_GET_PRIVATE(obj)       (G_TYPE_INSTANCE_GET_PRIVATE \
-        ((obj), LDM_TYPE, LDMPrivate))
-
 struct _LDMPrivate
 {
     GArray *disk_groups;
@@ -330,7 +327,7 @@ ldm_dispose(GObject * const object)
 static void
 ldm_init(LDM * const o)
 {
-    o->priv = LDM_GET_PRIVATE(o);
+    o->priv = ldm_get_instance_private(o);
     bzero(o->priv, sizeof(*o->priv));
 
     /* Provide our logging function. */
@@ -348,9 +345,6 @@ ldm_class_init(LDMClass * const klass)
 }
 
 /* LDMDiskGroup */
-
-#define LDM_DISK_GROUP_GET_PRIVATE(obj)    (G_TYPE_INSTANCE_GET_PRIVATE \
-        ((obj), LDM_TYPE_DISK_GROUP, LDMDiskGroupPrivate))
 
 struct _LDMDiskGroupPrivate
 {
@@ -474,7 +468,7 @@ ldm_disk_group_class_init(LDMDiskGroupClass * const klass)
 static void
 ldm_disk_group_init(LDMDiskGroup * const o)
 {
-    o->priv = LDM_DISK_GROUP_GET_PRIVATE(o);
+    o->priv = ldm_disk_group_get_instance_private(o);
     bzero(o->priv, sizeof(*o->priv));
 }
 
@@ -499,9 +493,6 @@ ldm_volume_type_get_type(void)
 }
 
 /* LDMVolume */
-
-#define LDM_VOLUME_GET_PRIVATE(obj) (G_TYPE_INSTANCE_GET_PRIVATE \
-        ((obj), LDM_TYPE_VOLUME, LDMVolumePrivate))
 
 typedef enum {
     _VOLUME_TYPE_GEN = 0x3,
@@ -744,7 +735,7 @@ ldm_volume_class_init(LDMVolumeClass * const klass)
 static void
 ldm_volume_init(LDMVolume * const o)
 {
-    o->priv = LDM_VOLUME_GET_PRIVATE(o);
+    o->priv = ldm_volume_get_instance_private(o);
     bzero(o->priv, sizeof(*o->priv));
 
     /* We don't have a trivial way to initialize this array to the correct size
@@ -783,9 +774,6 @@ _cleanup_comp(gpointer const data)
 }
 
 /* LDMPartition */
-
-#define LDM_PARTITION_GET_PRIVATE(obj) (G_TYPE_INSTANCE_GET_PRIVATE \
-        ((obj), LDM_TYPE_PARTITION, LDMPartitionPrivate))
 
 struct _LDMPartitionPrivate
 {
@@ -912,14 +900,11 @@ ldm_partition_class_init(LDMPartitionClass * const klass)
 static void
 ldm_partition_init(LDMPartition * const o)
 {
-    o->priv = LDM_PARTITION_GET_PRIVATE(o);
+    o->priv = ldm_partition_get_instance_private(o);
     bzero(o->priv, sizeof(*o->priv));
 }
 
 /* LDMDisk */
-
-#define LDM_DISK_GET_PRIVATE(obj) (G_TYPE_INSTANCE_GET_PRIVATE \
-        ((obj), LDM_TYPE_DISK, LDMDiskPrivate))
 
 struct _LDMDiskPrivate
 {
@@ -1127,7 +1112,7 @@ ldm_disk_class_init(LDMDiskClass * const klass)
 static void
 ldm_disk_init(LDMDisk * const o)
 {
-    o->priv = LDM_DISK_GET_PRIVATE(o);
+    o->priv = ldm_disk_get_instance_private(o);
     bzero(o->priv, sizeof(*o->priv));
 }
 
