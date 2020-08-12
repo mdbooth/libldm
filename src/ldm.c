@@ -2759,12 +2759,28 @@ _dm_create_part(const LDMPartitionPrivate * const part, uint32_t cookie,
     return mangled_name;
 }
 
+/* Comparator function that allows for sorting LDMPartition objects by
+ * vol_offset (as the partitions may not always be sorted in increasing
+ * vol_offset order for spanned LDM partitions). */
+static gint
+_cmp_component_vol_offset(gconstpointer a, gconstpointer b)
+{
+    const LDMPartition * const ao = LDM_PARTITION(*(LDMPartition **)a);
+    const LDMPartition * const bo = LDM_PARTITION(*(LDMPartition **)b);
+    if (ao->priv->vol_offset < bo->priv->vol_offset) return -1;
+    if (ao->priv->vol_offset > bo->priv->vol_offset) return 1;
+    return 0;
+}
+
 static GString *
 _dm_create_spanned(const LDMVolumePrivate * const vol, GError ** const err)
 {
     GString *name = NULL;
     guint i = 0;
     struct dm_target *targets = g_malloc(sizeof(*targets) * vol->parts->len);
+
+    /* Sort LDM partitions by vol_offset */
+    g_array_sort(vol->parts, _cmp_component_vol_offset);
 
     uint64_t pos = 0;
     for (; i < vol->parts->len; i++) {
