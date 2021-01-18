@@ -1296,7 +1296,7 @@ _read_privhead_off(const int fd, const gchar * const path,
                            sizeof(*privhead) - read,
                            ph_start + read);
         if (in == 0) {
-           g_set_error(err, LDM_ERROR, LDM_ERROR_INVALID,
+            g_set_error(err, LDM_ERROR, LDM_ERROR_INVALID,
                         "%s contains invalid LDM metadata", path);
             return FALSE;
         }
