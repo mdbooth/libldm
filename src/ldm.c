@@ -1296,7 +1296,7 @@ _read_privhead_off(const int fd, const gchar * const path,
                            sizeof(*privhead) - read,
                            ph_start + read);
         if (in == 0) {
-            g_set_error(err, LDM_ERROR, LDM_ERROR_INVALID,
+           g_set_error(err, LDM_ERROR, LDM_ERROR_INVALID,
                         "%s contains invalid LDM metadata", path);
             return FALSE;
         }
@@ -1422,6 +1422,7 @@ _read_privhead(const int fd, const gchar * const path, const guint secsize,
 {
     // Whether the disk is MBR or GPT, we expect to find an MBR at the beginning
     mbr_t mbr;
+    int i;
     int r = mbr_read(fd, &mbr);
     if (r < 0) {
         switch (-r) {
@@ -1440,18 +1441,28 @@ _read_privhead(const int fd, const gchar * const path, const guint secsize,
         }
     }
 
-    switch (mbr.part[0].type) {
-    case MBR_PART_WINDOWS_LDM:
-        return _read_privhead_mbr(fd, path, secsize, privhead, err);
+    // Check all primary partitions on MBR - OEM and other partition types can co-exist with LDM
+    // FIXME: should check what the last primary partition is instead of assuming 4. 
+    //        not sure if LDM works on extended partitions but it might 
+    //        not sure how GPT handles a MIX of LDM and other partition types
+    for (i=0; i < 4; i++) {    
+	    switch (mbr.part[i].type) {
+	    case MBR_PART_WINDOWS_LDM:
+	    	printf(" test MBR \n");
+	        return _read_privhead_mbr(fd, path, secsize, privhead, err);
 
-    case MBR_PART_EFI_PROTECTIVE:
-        return _read_privhead_gpt(fd, path, secsize, privhead, err);
+	    case MBR_PART_EFI_PROTECTIVE:
+    		printf(" test EFI \n");
+	        return _read_privhead_gpt(fd, path, secsize, privhead, err);
 
-    default:
-        g_set_error(err, LDM_ERROR, LDM_ERROR_NOT_LDM,
-                    "%s does not contain LDM metadata", path);
-        return FALSE;
+	    default:
+	        g_set_error(err, LDM_ERROR, LDM_ERROR_NOT_LDM,
+                    "partition %d type=%x does not contain LDM metadata, skipping", i+1, mbr.part[i].type);
+	    }
     }
+    g_set_error(err, LDM_ERROR, LDM_ERROR_NOT_LDM,
+       	"%s does not contain LDM metadata", path);
+    return FALSE;
 }
 
 #define PARSE_VAR_INT(func_name, out_type)                                     \
