@@ -1442,17 +1442,12 @@ _read_privhead(const int fd, const gchar * const path, const guint secsize,
     }
 
     // Check all primary partitions on MBR - OEM and other partition types can co-exist with LDM
-    // FIXME: should check what the last primary partition is instead of assuming 4. 
-    //        not sure if LDM works on extended partitions but it might 
-    //        not sure how GPT handles a MIX of LDM and other partition types
     for (i=0; i < 4; i++) {    
 	    switch (mbr.part[i].type) {
 	    case MBR_PART_WINDOWS_LDM:
-	    	printf(" test MBR \n");
 	        return _read_privhead_mbr(fd, path, secsize, privhead, err);
 
 	    case MBR_PART_EFI_PROTECTIVE:
-    		printf(" test EFI \n");
 	        return _read_privhead_gpt(fd, path, secsize, privhead, err);
 
 	    default:
