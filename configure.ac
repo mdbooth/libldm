@@ -119,4 +119,5 @@ AC_CONFIG_FILES([docs/reference/libldm/Makefile])
 AC_CONFIG_FILES([docs/reference/ldmtool/Makefile])
 AC_CONFIG_FILES([ldm-1.0.pc])
 AC_CONFIG_FILES([libldm.spec])
+AC_CONFIG_FILES([ldm.service])
 AC_OUTPUT

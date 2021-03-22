@@ -1,0 +1,12 @@
+[Unit]
+Description=Activate Windows Logical Disk Manager volumes
+Documentation=man:ldmtool(1)
+
+[Service]
+ExecStart=@bindir@/ldmtool create all
+ExecStop=@bindir@/ldmtool remove all
+Type=oneshot
+RemainAfterExit=yes
+
+[Install]
+WantedBy=multi-user.target

@@ -8,6 +8,7 @@
 /config.status
 /configure
 /ldm-1.0.pc
+/ldm.service
 /libldm-*/
 /libldm-*.tar.gz
 /libtool
