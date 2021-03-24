@@ -1451,9 +1451,9 @@ _read_privhead(const int fd, const gchar * const path, const guint secsize,
 	        return _read_privhead_gpt(fd, path, secsize, privhead, err);
 
 	    default:
-	        g_set_error(err, LDM_ERROR, LDM_ERROR_NOT_LDM,
+                g_set_error(err, LDM_ERROR, LDM_ERROR_NOT_LDM,
                     "partition %d type=%x does not contain LDM metadata, skipping", i+1, mbr.part[i].type);
-	    }
+            }
     }
     g_set_error(err, LDM_ERROR, LDM_ERROR_NOT_LDM,
        	"%s does not contain LDM metadata", path);
