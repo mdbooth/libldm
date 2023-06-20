@@ -746,6 +746,8 @@ cmdline(LDM * const ldm, gchar **devices,
     GArray * scanned = NULL;
     if (!devices) {
         scanned = get_devices();
+        if (!scanned)
+            return FALSE;
         devices = (gchar **) scanned->data;
     }
 
