@@ -25,6 +25,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
+#include <uuid/uuid.h>
 #include <wordexp.h>
 
 #include <glib-object.h>
@@ -74,13 +75,22 @@ gboolean usage_remove(void)
     return FALSE;
 }
 
-typedef gboolean (*_action_t) (LDM *ldm, gint argc, gchar **argv,
-                               JsonBuilder *jb);
+typedef struct {
+    /* User specified UUID for device mapper */
+    uuid_t uuid_override;
+} _options_t;
 
-gboolean ldm_scan(LDM *ldm, gint argc, gchar **argv, JsonBuilder *jb);
-gboolean ldm_show(LDM *ldm, gint argc, gchar **argv, JsonBuilder *jb);
-gboolean ldm_create(LDM *ldm, gint argc, gchar **argv, JsonBuilder *jb);
-gboolean ldm_remove(LDM *ldm, gint argc, gchar **argv, JsonBuilder *jb);
+typedef gboolean (*_action_t) (LDM *ldm, const _options_t * const opts,
+                               gint argc, gchar **argv, JsonBuilder *jb);
+
+gboolean ldm_scan(LDM *ldm, const _options_t * const opts, gint argc,
+                  gchar **argv, JsonBuilder *jb);
+gboolean ldm_show(LDM *ldm, const _options_t * const opts, gint argc,
+                  gchar **argv, JsonBuilder *jb);
+gboolean ldm_create(LDM *ldm, const _options_t * const opts, gint argc,
+                    gchar **argv, JsonBuilder *jb);
+gboolean ldm_remove(LDM *ldm, const _options_t * const opts, gint argc,
+                    gchar **argv, JsonBuilder *jb);
 
 typedef struct {
     const char * name;
@@ -96,14 +106,15 @@ static const _command_t commands[] = {
 };
 
 gboolean
-do_command(LDM * const ldm, const int argc, char *argv[], gboolean *result,
+do_command(LDM * const ldm, const _options_t * const opts,
+           const int argc, char *argv[], gboolean *result,
            GOutputStream * const out,
            JsonGenerator * const jg, JsonBuilder * const jb)
 {
     const _command_t *i = commands;
     while (i->name) {
         if (g_strcmp0(i->name, argv[0]) == 0) {
-            if ((i->action)(ldm, argc - 1, argv + 1, jb)) {
+            if ((i->action)(ldm, opts, argc - 1, argv + 1, jb)) {
                 GError *err = NULL;
                 json_generator_set_root(jg, json_builder_get_root(jb));
                 if (!json_generator_to_stream(jg, out, NULL, &err)) {
@@ -174,8 +185,8 @@ _scan(LDM *const ldm, gboolean ignore_errors,
 }
 
 gboolean
-ldm_scan(LDM *const ldm, const gint argc, gchar ** const argv,
-         JsonBuilder * const jb)
+ldm_scan(LDM *const ldm, const _options_t * const opts, const gint argc,
+         gchar ** const argv, JsonBuilder * const jb)
 {
     return _scan(ldm, FALSE, argc, argv, jb);
 }
@@ -477,8 +488,8 @@ show_disk(LDM *const ldm, const gint argc, gchar ** const argv,
 }
 
 gboolean
-ldm_show(LDM *const ldm, const gint argc, gchar ** const argv,
-         JsonBuilder * const jb)
+ldm_show(LDM *const ldm, const _options_t * const opts, const gint argc,
+         gchar ** const argv, JsonBuilder * const jb)
 {
     if (argc == 0) return usage_show();
 
@@ -499,8 +510,8 @@ typedef gboolean (*_usage_t)();
 typedef gboolean (*_vol_action_t)(const LDMVolume *, GString **, GError **);
 
 static gboolean
-_ldm_vol_action(LDM *const ldm, const gint argc, gchar ** const argv,
-                JsonBuilder * const jb,
+_ldm_vol_action(LDM *const ldm, const _options_t * const opts, const gint argc,
+                gchar ** const argv, JsonBuilder * const jb,
                 const gchar * const action_desc,
                 _usage_t const usage, _vol_action_t const action)
 {
@@ -508,6 +519,11 @@ _ldm_vol_action(LDM *const ldm, const gint argc, gchar ** const argv,
 
     if (argc == 1) {
         if (g_strcmp0(argv[0], "all") != 0) return (*usage)();
+
+        if (!uuid_is_null(opts->uuid_override)) {
+            g_warning("UUID override cannot be used for multiple volumes");
+            return FALSE;
+        }
 
         GArray *dgs = ldm_get_disk_groups(ldm);
         for (guint i = 0; i < dgs->len; i++) {
@@ -567,6 +583,10 @@ _ldm_vol_action(LDM *const ldm, const gint argc, gchar ** const argv,
             return FALSE;
         }
 
+        if (!uuid_is_null(opts->uuid_override)) {
+            ldm_volume_override_uuid(vol, opts->uuid_override);
+        }
+
         GError *err = NULL;
         GString *device = NULL;
         if (!(*action)(vol, &device, &err)) {
@@ -592,25 +612,30 @@ _ldm_vol_action(LDM *const ldm, const gint argc, gchar ** const argv,
 }
 
 gboolean
-ldm_create(LDM *const ldm, const gint argc, gchar ** const argv,
-           JsonBuilder * const jb)
+ldm_create(LDM *const ldm, const _options_t * const opts, const gint argc,
+           gchar ** const argv, JsonBuilder * const jb)
 {
-    return _ldm_vol_action(ldm, argc, argv, jb,
+    return _ldm_vol_action(ldm, opts, argc, argv, jb,
                            "create", usage_create, ldm_volume_dm_create);
 }
 
 gboolean
-ldm_remove(LDM *const ldm, const gint argc, gchar ** const argv,
-           JsonBuilder * const jb)
+ldm_remove(LDM *const ldm, const _options_t * const opts, const gint argc,
+           gchar ** const argv, JsonBuilder * const jb)
 {
-    return _ldm_vol_action(ldm, argc, argv, jb,
+    return _ldm_vol_action(ldm, opts, argc, argv, jb,
                            "remove", usage_remove, ldm_volume_dm_remove);
 }
 
 gboolean
-shell(LDM * const ldm, gchar ** const devices,
+shell(LDM * const ldm, const _options_t * const opts, gchar ** const devices,
       JsonGenerator * const jg, GOutputStream * const out)
 {
+    if (!uuid_is_null(opts->uuid_override)) {
+        g_warning("UUID override cannot be used in shell mode");
+        return FALSE;
+    }
+
     int history_len = 0;
 
     rl_readline_name = "ldmtool";
@@ -659,7 +684,7 @@ shell(LDM * const ldm, gchar ** const devices,
         free(line);
 
         gboolean result = FALSE;
-        if (!do_command(ldm, argc, argv, &result, out, jg, jb)) {
+        if (!do_command(ldm, opts, argc, argv, &result, out, jg, jb)) {
             if (g_strcmp0("quit", argv[0]) == 0 ||
                 g_strcmp0("exit", argv[0]) == 0)
             {
@@ -739,7 +764,7 @@ get_devices(void)
 }
 
 gboolean
-cmdline(LDM * const ldm, gchar **devices,
+cmdline(LDM * const ldm, const _options_t * const opts, gchar **devices,
         JsonGenerator * const jg, GOutputStream * const out,
         const int argc, char *argv[])
 {
@@ -757,7 +782,7 @@ cmdline(LDM * const ldm, gchar **devices,
 
     jb = json_builder_new();
     gboolean result;
-    if (!do_command(ldm, argc, argv, &result, out, jg, jb)) {
+    if (!do_command(ldm, opts, argc, argv, &result, out, jg, jb)) {
         g_warning("Unrecognised command: %s", argv[0]);
         goto error;
     }
@@ -789,11 +814,14 @@ int
 main(int argc, char *argv[])
 {
     static gchar **devices = NULL;
+    static gchar *uuid_override_str = NULL;
 
     static const GOptionEntry entries[] =
     {
         { "device", 'd', 0, G_OPTION_ARG_FILENAME_ARRAY,
           &devices, "Block device to scan for LDM metadata", NULL },
+        { "uuid_override", 0, 0, G_OPTION_ARG_STRING,
+          &uuid_override_str, "UUID override for device mapper", NULL },
         { NULL }
     };
 
@@ -813,6 +841,17 @@ main(int argc, char *argv[])
     }
     g_option_context_free(context);
 
+    _options_t opts;
+    uuid_clear(opts.uuid_override);
+    if (uuid_override_str) {
+        if (uuid_parse(uuid_override_str, opts.uuid_override)) {
+            g_warning("Failed to parse %s as a UUID", uuid_override_str);
+            return 1;
+        }
+        g_free(uuid_override_str);
+        uuid_override_str = NULL;
+    }
+
 #if !GLIB_CHECK_VERSION(2,35,0)
     g_type_init();
 #endif
@@ -828,11 +867,11 @@ main(int argc, char *argv[])
     json_generator_set_indent(jg, 2);
 
     if (argc > 1) {
-        if (!cmdline(ldm, devices, jg, out, argc - 1, argv + 1)) {
+        if (!cmdline(ldm, &opts, devices, jg, out, argc - 1, argv + 1)) {
             ret = 1;
         }
     } else {
-        if (!shell(ldm, devices, jg, out)) {
+        if (!shell(ldm, &opts, devices, jg, out)) {
             ret = 1;
         }
     }

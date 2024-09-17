@@ -18,6 +18,8 @@
 #ifndef LIBLDM_LDM_H__
 #define LIBLDM_LDM_H__
 
+#include <uuid/uuid.h>
+
 #include <glib-object.h>
 
 G_BEGIN_DECLS
@@ -259,7 +261,7 @@ LDM *ldm_new();
 /**
  * ldm_add:
  * @o: An #LDM object
- * @path: The path of the device 
+ * @path: The path of the device
  * @err: A #GError to receive any generated errors
  *
  * Scan device @path and add its metadata to LDM object @o.
@@ -303,7 +305,7 @@ GArray *ldm_get_disk_groups(LDM *o);
  *
  * Returns: (element-type LDMVolume)(transfer container):
  *      An array of volumes
- */ 
+ */
 GArray *ldm_disk_group_get_volumes(LDMDiskGroup *o);
 
 /**
@@ -496,6 +498,16 @@ gboolean ldm_volume_dm_create(const LDMVolume *o, GString **created,
  */
 gboolean ldm_volume_dm_remove(const LDMVolume *o, GString **removed,
                               GError **err);
+
+/**
+ * ldm_volume_override_uuid:
+ * @o: An #LDMVolume
+ * @uuid_override: User specified UUID for device mapper
+ *
+ * Set the UUID used for device mapper. If no override is set, the volume's
+ * GUID will be used.
+ */
+void ldm_volume_override_uuid(LDMVolume * const o, const uuid_t uuid_override);
 
 /**
  * ldm_partition_get_disk:

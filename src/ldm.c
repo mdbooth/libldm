@@ -524,6 +524,9 @@ struct _LDMVolumePrivate
     _int_volume_type _int_type;
     guint32 _n_comps;
     guint32 _n_comps_i;
+
+    /* User specified UUID for device mapper */
+    uuid_t uuid_override;
 };
 
 G_DEFINE_TYPE_WITH_PRIVATE(LDMVolume, ldm_volume, G_TYPE_OBJECT)
@@ -2441,7 +2444,11 @@ static GString *
 _dm_vol_uuid(const LDMVolumePrivate * const vol)
 {
     char ldm_vol_uuid[37];
-    uuid_unparse_lower(vol->guid, ldm_vol_uuid);
+    if (!uuid_is_null(vol->uuid_override)) {
+        uuid_unparse_lower(vol->uuid_override, ldm_vol_uuid);
+    } else {
+        uuid_unparse_lower(vol->guid, ldm_vol_uuid);
+    }
 
     GString * dm_uuid = g_string_new("");
     g_string_printf(dm_uuid, "%s%s-%s",
@@ -3154,7 +3161,7 @@ ldm_volume_dm_create(const LDMVolume * const o, GString **created,
     }
 
     gboolean r = name != NULL;
-    
+
     if (created)
         *created = name;
     else if (name)
@@ -3217,4 +3224,10 @@ out:
         g_string_free(name, TRUE);
 
     return r;
+}
+
+void ldm_volume_override_uuid(LDMVolume * const o,
+                              const uuid_t uuid_override) {
+    LDMVolumePrivate * const vol = o->priv;
+    uuid_copy(vol->uuid_override, uuid_override);
 }

@@ -94,6 +94,17 @@
                 </para>
             </listitem>
         </varlistentry>
+        <varlistentry>
+            <term>
+                <option>--uuid_override</option> <replaceable>uuid</replaceable>
+            </term>
+            <listitem>
+                <para>
+                User specified UUID for use with device mapper. This can only be
+                used in single action mode for a single volume.
+                </para>
+            </listitem>
+        </varlistentry>
     </variablelist>
 </refsect1>
 
@@ -151,7 +162,7 @@
 
     <refsect2>
         <title>Single action mode</title>
-        
+
         <para>
         When invoked to run a single action all block devices will be scanned by
         default. In this case, if any block devices are specified with the

@@ -32,7 +32,7 @@ bin_PROGRAMS = ldmtool
 ldmtool_CFLAGS = $(AM_CFLAGS) $(GOBJECT_CFLAGS) $(JSON_CFLAGS) \
 		 $(GIO_UNIX_CFLAGS)
 ldmtool_LDADD = -lreadline $(builddir)/$(libname) $(GOBJECT_LIBS) \
-		$(JSON_LIBS) $(GIO_UNIX_LIBS)
+		$(JSON_LIBS) $(GIO_UNIX_LIBS) $(UUID_LIBS)
 
 # GObject introspection fails. This seems to be because g-ir-scanner incorrectly
 # guesses the symbol prefix as 'l_dm', although explicitly passing in the

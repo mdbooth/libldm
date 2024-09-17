@@ -21,7 +21,7 @@ EXTRA_DIST = checkmount.pl data/ldm-data.tar.xz
 check_PROGRAMS = partread ldmread
 
 partread_CFLAGS = $(AM_CFLAGS) -I$(top_srcdir)/src
-partread_LDADD = $(top_builddir)/src/libldm-1.0.la
+partread_LDADD = $(top_builddir)/src/libldm-1.0.la $(UUID_LIBS)
 
 ldmread_CFLAGS = $(AM_CFLAGS) -I$(top_srcdir)/src $(GOBJECT_CFLAGS)
 ldmread_LDADD = $(top_builddir)/src/libldm-1.0.la $(GOBJECT_LIBS)
