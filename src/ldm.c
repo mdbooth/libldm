@@ -1425,6 +1425,7 @@ _read_privhead(const int fd, const gchar * const path, const guint secsize,
 {
     // Whether the disk is MBR or GPT, we expect to find an MBR at the beginning
     mbr_t mbr;
+    int i;
     int r = mbr_read(fd, &mbr);
     if (r < 0) {
         switch (-r) {
@@ -1443,18 +1444,23 @@ _read_privhead(const int fd, const gchar * const path, const guint secsize,
         }
     }
 
-    switch (mbr.part[0].type) {
-    case MBR_PART_WINDOWS_LDM:
-        return _read_privhead_mbr(fd, path, secsize, privhead, err);
+    // Check all primary partitions on MBR - OEM and other partition types can co-exist with LDM
+    for (i=0; i < 4; i++) {    
+	    switch (mbr.part[i].type) {
+	    case MBR_PART_WINDOWS_LDM:
+	        return _read_privhead_mbr(fd, path, secsize, privhead, err);
 
-    case MBR_PART_EFI_PROTECTIVE:
-        return _read_privhead_gpt(fd, path, secsize, privhead, err);
+	    case MBR_PART_EFI_PROTECTIVE:
+	        return _read_privhead_gpt(fd, path, secsize, privhead, err);
 
-    default:
-        g_set_error(err, LDM_ERROR, LDM_ERROR_NOT_LDM,
-                    "%s does not contain LDM metadata", path);
-        return FALSE;
+	    default:
+                g_set_error(err, LDM_ERROR, LDM_ERROR_NOT_LDM,
+                    "partition %d type=%x does not contain LDM metadata, skipping", i+1, mbr.part[i].type);
+            }
     }
+    g_set_error(err, LDM_ERROR, LDM_ERROR_NOT_LDM,
+       	"%s does not contain LDM metadata", path);
+    return FALSE;
 }
 
 #define PARSE_VAR_INT(func_name, out_type)                                     \
