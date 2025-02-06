@@ -856,7 +856,7 @@ main(int argc, char *argv[])
     g_type_init();
 #endif
 
-    LDM * const ldm = ldm_new(&err);
+    LDM * const ldm = ldm_new();
 
     int ret = 0;
 

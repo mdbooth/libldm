@@ -256,7 +256,7 @@ GType ldm_disk_group_get_type(void);
  *
  * Returns: (transfer full): a new #LDM object
  */
-LDM *ldm_new();
+LDM *ldm_new(void);
 
 /**
  * ldm_add:

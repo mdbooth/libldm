@@ -2354,7 +2354,7 @@ error:
 }
 
 LDM *
-ldm_new()
+ldm_new(void)
 {
     LDM *ldm = LDM_CAST(g_object_new(LDM_TYPE, NULL));
     ldm->priv->disk_groups = g_array_sized_new(FALSE, FALSE,
